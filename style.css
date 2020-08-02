@@ -1,0 +1,22 @@
+table {
+}
+thead {
+    font-weight: bold;
+    background-color: #ccc;
+}
+tbody {
+    background-color: #eee;
+}
+td {
+    padding: 0.1em 0.5em;
+}
+.number {
+    text-align: right;
+}
+.tradeQty {
+    text-align: right;
+    width: 2em;
+}
+td.doing {
+    background-color: #ecc;
+}
