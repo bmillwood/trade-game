@@ -4,8 +4,10 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 
-view : Html a
-view =
+import Model
+
+view : Model.PlayerInfo Float -> Html a
+view { username, ready, resources, trade } =
   let
     action value =
       let
@@ -31,15 +33,25 @@ view =
         ]
         []
 
-    trade give get =
-      Html.td
-        []
-        [ tradeQty "-"
-        , Html.text give
-        , Html.text " for "
-        , tradeQty "-"
-        , Html.text get
-        ]
+    showTradeParams params =
+      case params of
+        Nothing -> { giveMax = "-", getForEachGive = "-" }
+        Just { giveMax, getForEachGive } ->
+          { giveMax = String.fromFloat giveMax
+          , getForEachGive = String.fromFloat getForEachGive
+          }
+
+    showTrade give get params =
+      case showTradeParams params of
+        { giveMax, getForEachGive } ->
+          Html.td
+            []
+            [ tradeQty giveMax
+            , Html.text give
+            , Html.text " for "
+            , tradeQty getForEachGive
+            , Html.text (get ++ " each")
+            ]
 
     intCell value =
       Html.td [Html.Attributes.class "number"] [Html.text (String.fromInt value)]
@@ -65,7 +77,7 @@ view =
           , intCell 0
           , intCell 1
           , intCell 1
-          , trade "M" "C"
+          , showTrade "M" "C" trade.crafted
           ]
       , Html.tr
         []
@@ -73,7 +85,7 @@ view =
         , intCell 0
         , intCell 1
         , intCell 1
-        , trade "C" "M"
+        , showTrade "C" "M" trade.mined
         ]
       ]
     ]
