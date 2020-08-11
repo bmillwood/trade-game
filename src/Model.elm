@@ -25,10 +25,14 @@ type alias Choices =
 type alias LoginForm =
   { username : String }
 
+type alias Players =
+  { me : PlayerInfo
+  , others : List PlayerInfo
+  }
+
 type alias Game =
   { choices : Choices
-  , me : PlayerInfo
-  , others : List PlayerInfo
+  , players : Players
   }
 
 type Model

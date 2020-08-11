@@ -28,13 +28,15 @@ fakeNewGame { username } =
       { action = Nothing
       , trade = ByResource.both { giveMax = Nothing, getForEachGive = Nothing }
       }
-  , me =
-      { username = username
-      , ready = False
-      , resources = ByResource.both { held = 0, increment = 1, upgradeIn = 1 }
-      , trade = ByResource.both Nothing
+  , players =
+      { me =
+          { username = username
+          , ready = False
+          , resources = ByResource.both { held = 0, increment = 1, upgradeIn = 1 }
+          , trade = ByResource.both Nothing
+          }
+      , others = []
       }
-  , others = []
   }
 
 submitLogin : Model.LoginForm -> Cmd Msg
@@ -50,8 +52,21 @@ update msg model =
         Msg.Submit -> (model, submitLogin loginForm)
         Msg.Accepted game -> (Model.InGame game, Cmd.none)
     (Msg.InGame gameMsg, Model.InGame game) ->
-      never gameMsg
-    (_, _) -> (model, Cmd.none)
+      case gameMsg of
+        Msg.MakeChoice choices ->
+          (Model.InGame { game | choices = choices }, Cmd.none)
+        Msg.SetReady isReady ->
+          let
+            oldPlayers = game.players
+            oldMe = oldPlayers.me
+            newPlayers = { oldPlayers | me = { oldMe | ready = isReady } }
+          in
+          -- also need to send choices to the server
+          (Model.InGame { game | players = newPlayers }, Cmd.none)
+        Msg.ServerUpdate newPlayers ->
+          (Model.InGame { game | players = newPlayers }, Cmd.none)
+    (_, _) ->
+      (model, Cmd.none)
 
 subscriptions : Model -> Sub Msg
 subscriptions _ = Sub.none
