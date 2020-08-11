@@ -12,3 +12,6 @@ get r =
 
 map : (a -> b) -> ByResource a -> ByResource b
 map f b = { mined = f b.mined, crafted = f b.crafted }
+
+both : a -> ByResource a
+both x = { mined = x, crafted = x }

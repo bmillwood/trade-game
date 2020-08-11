@@ -17,7 +17,14 @@ type alias PlayerInfo qty =
   , trade : TradeMatrix qty
   }
 
-type alias Model =
+type alias LoginForm =
+  { username : String }
+
+type alias Game =
   { me : PlayerInfo Float
   , others : List (PlayerInfo Float)
   }
+
+type Model
+  = PreGame LoginForm
+  | InGame Game
