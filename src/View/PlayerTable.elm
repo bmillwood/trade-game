@@ -1,7 +1,6 @@
 module View.PlayerTable exposing (view)
 
 import Dict exposing (Dict)
-import Html as Unstyled
 import Html.Styled as Html exposing (Html)
 
 import ByResource exposing (ByResource)
@@ -63,7 +62,7 @@ rowFor { username, ready, resources, trade } =
   , tradeCM = showTrade Resource.Mined
   }
 
-view : List Model.PlayerInfo -> Unstyled.Html a
+view : List Model.PlayerInfo -> Html a
 view players =
   Html.table
     []
@@ -92,4 +91,3 @@ view players =
         []
         (List.map (\p -> viewRow (rowFor p)) players)
     ]
-  |> Html.toUnstyled

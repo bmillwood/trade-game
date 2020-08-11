@@ -1,6 +1,5 @@
 module View.ResourceTable exposing (view)
 
-import Html as Unstyled
 import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attributes
 import Html.Styled.Events as Events
@@ -10,7 +9,7 @@ import Model
 import Resource
 import View.Style
 
-view : Model.Choices -> Model.PlayerInfo -> Unstyled.Html a
+view : Model.Choices -> Model.PlayerInfo -> Html a
 view { action, trade } { username, ready, resources } =
   let
     tradeQty qty =
@@ -100,4 +99,3 @@ view { action, trade } { username, ready, resources } =
       , resourceRow Resource.Crafted
       ]
     ]
-  |> Html.toUnstyled
