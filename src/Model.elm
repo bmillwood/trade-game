@@ -19,7 +19,7 @@ type alias PlayerInfo =
 
 type alias Choices =
   { action : Maybe Resource
-  , trade : ByResource (TradeParam (Maybe Float))
+  , trade : ByResource (TradeParam String)
   }
 
 type alias LoginForm =

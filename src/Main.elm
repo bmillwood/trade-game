@@ -8,6 +8,7 @@ import Task
 import ByResource
 import Model exposing (Model)
 import Msg exposing (Msg)
+import Resource
 import View
 
 initResourceInfo : Model.ResourceInfo Float
@@ -26,7 +27,7 @@ fakeNewGame : { username : String } -> Model.Game
 fakeNewGame { username } =
   { choices =
       { action = Nothing
-      , trade = ByResource.both { giveMax = Nothing, getForEachGive = Nothing }
+      , trade = ByResource.both { giveMax = "-", getForEachGive = "-" }
       }
   , players =
       { me =

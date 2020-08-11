@@ -28,6 +28,7 @@ viewGame { choices, players } =
   Html.div
     []
     [ View.ResourceTable.view choices players.me
+      |> Html.map Msg.MakeChoice
     , Html.p
         []
         [ Html.button
@@ -37,6 +38,7 @@ viewGame { choices, players } =
             [ Html.text "Ready" ]
         ]
     , View.PlayerTable.view (players.me :: players.others)
+      |> Html.map never
     ]
 
 viewStyled : Model.Model -> Html Msg

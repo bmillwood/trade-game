@@ -6,78 +6,80 @@ import Html.Styled.Events as Events
 
 import ByResource
 import Model
+import Msg
 import Resource
 import View.Style
 
-view : Model.Choices -> Model.PlayerInfo -> Html a
-view { action, trade } { username, ready, resources } =
+view : Model.Choices -> Model.PlayerInfo -> Html Model.Choices
+view choices me =
   let
-    tradeQty qty =
+    tradeQty qty onInput =
       View.Style.tradeQty
         Html.input
         [ Attributes.type_ "text"
         , Attributes.value qty
-        , Attributes.disabled ready
+        , Attributes.disabled me.ready
+        , Events.onInput onInput
         ]
         []
 
-    showTradeParams params =
-      case params of
-        Nothing -> { giveMax = "-", getForEachGive = "-" }
-        Just { giveMax, getForEachGive } ->
-          { giveMax = String.fromFloat giveMax
-          , getForEachGive = String.fromFloat getForEachGive
-          }
-
-    showTrade { give, get } { giveMax, getForEachGive } =
+    tradeCell resource =
       let
-        tradeMaybeQty qty =
-          Maybe.map String.fromFloat qty
-          |> Maybe.withDefault "-"
-          |> tradeQty
+        (give, get) =
+          case resource of
+            Resource.Mined -> ("C", "M")
+            Resource.Crafted -> ("M", "C")
+        params = ByResource.get resource choices.trade
+        setParams newParams = { choices | trade = ByResource.set resource newParams choices.trade }
       in
       Html.td
         []
         [ Html.text "Offer up to "
-        , tradeMaybeQty giveMax
+        , tradeQty params.giveMax (\inp -> setParams { params | giveMax = inp })
         , Html.text give
         , Html.text " for "
-        , tradeMaybeQty getForEachGive
+        , tradeQty params.getForEachGive (\inp -> setParams { params | getForEachGive = inp })
         , Html.text (get ++ " each")
         ]
 
     floatCell value =
       View.Style.number Html.td [] [Html.text (String.fromFloat value)]
 
-    resourceRow resource =
+    actionSelectCell resource =
       let
-        (actionText, give, get) =
+        actionText =
           case resource of
-            Resource.Mined -> ("Mine", "C", "M")
-            Resource.Crafted -> ("Craft", "M", "C")
+            Resource.Mined -> "Mine"
+            Resource.Crafted -> "Craft"
         inputId = "action:" ++ actionText
-        resourceInfo = ByResource.get resource resources
       in
-      Html.tr
-        []
-        [ View.Style.td
+      View.Style.td
             []
             [ Html.input
                 [ Attributes.type_ "radio"
                 , Attributes.id inputId
                 , Attributes.name "action"
                 , Attributes.value actionText
-                , Attributes.disabled ready
+                , Attributes.disabled me.ready
+                , Events.onClick { choices | action = Just resource }
                 ]
                 []
             , Html.label
               [ Attributes.for inputId ]
               [ Html.text actionText ]
             ]
+
+    resourceRow resource =
+      let
+        resourceInfo = ByResource.get resource me.resources
+      in
+      Html.tr
+        []
+        [ actionSelectCell resource
         , floatCell resourceInfo.held
         , floatCell resourceInfo.increment
         , floatCell resourceInfo.upgradeIn
-        , showTrade { give = give, get = get } (ByResource.get resource trade)
+        , tradeCell resource
         ]
   in
   Html.table

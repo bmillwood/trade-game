@@ -10,6 +10,12 @@ get r =
     Resource.Mined -> .mined
     Resource.Crafted -> .crafted
 
+set : Resource -> a -> ByResource a -> ByResource a
+set r x b =
+  case r of
+    Resource.Mined -> { b | mined = x }
+    Resource.Crafted -> { b | crafted = x }
+
 map : (a -> b) -> ByResource a -> ByResource b
 map f b = { mined = f b.mined, crafted = f b.crafted }
 
