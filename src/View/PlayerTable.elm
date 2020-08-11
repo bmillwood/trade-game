@@ -5,14 +5,14 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 
-import ByResource
+import ByResource exposing (ByResource)
 import Resource
 import Model
 
 type alias Row a =
   { ready : Html a
   , username : Html a
-  , resources : Model.ByResource (Model.ResourceInfo (Html a))
+  , resources : ByResource (Model.ResourceInfo (Html a))
   , tradeMC : Html a
   , tradeCM : Html a
   }

@@ -1,9 +1,8 @@
 module Model exposing (..)
 
+import ByResource exposing (ByResource)
 import Dict exposing (Dict)
 import Resource exposing (Resource)
-
-type alias ByResource a = { mined : a, crafted : a }
 
 type alias ResourceInfo qty = { held : qty, increment : qty, upgradeIn : qty }
 
