@@ -41,7 +41,7 @@ viewRow { ready, username, resources, tradeMC, tradeCM } =
     []
     (beforeResources ++ inResources ++ afterResources)
 
-rowFor : Model.PlayerInfo Float -> Row a
+rowFor : Model.PlayerInfo -> Row a
 rowFor { username, ready, resources, trade } =
   let
     qtyText n = Html.text (String.fromFloat n)
@@ -63,7 +63,7 @@ rowFor { username, ready, resources, trade } =
   , tradeCM = showTrade Resource.Mined
   }
 
-view : List (Model.PlayerInfo Float) -> Unstyled.Html a
+view : List Model.PlayerInfo -> Unstyled.Html a
 view players =
   Html.table
     []

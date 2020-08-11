@@ -8,7 +8,7 @@ import Html.Styled.Events as Events
 import Model
 import View.Style
 
-view : Model.PlayerInfo Float -> Unstyled.Html a
+view : Model.PlayerInfo -> Unstyled.Html a
 view { username, ready, resources, trade } =
   let
     action value =

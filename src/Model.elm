@@ -10,19 +10,19 @@ type alias TradeParam qty = { giveMax : qty, getForEachGive : qty }
 
 type alias TradeMatrix qty = ByResource (Maybe (TradeParam qty))
 
-type alias PlayerInfo qty =
+type alias PlayerInfo =
   { username : String
   , ready : Bool
-  , resources : ByResource (ResourceInfo qty)
-  , trade : TradeMatrix qty
+  , resources : ByResource (ResourceInfo Float)
+  , trade : TradeMatrix Float
   }
 
 type alias LoginForm =
   { username : String }
 
 type alias Game =
-  { me : PlayerInfo Float
-  , others : List (PlayerInfo Float)
+  { me : PlayerInfo
+  , others : List PlayerInfo
   }
 
 type Model
