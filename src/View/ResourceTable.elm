@@ -1,12 +1,14 @@
 module View.ResourceTable exposing (view)
 
-import Html exposing (Html)
-import Html.Attributes
-import Html.Events
+import Html as Unstyled
+import Html.Styled as Html exposing (Html)
+import Html.Styled.Attributes as Attributes
+import Html.Styled.Events as Events
 
 import Model
+import View.Style
 
-view : Model.PlayerInfo Float -> Html a
+view : Model.PlayerInfo Float -> Unstyled.Html a
 view { username, ready, resources, trade } =
   let
     action value =
@@ -14,22 +16,22 @@ view { username, ready, resources, trade } =
         inputId = "action:" ++ value
       in
       [ Html.input
-          [ Html.Attributes.type_ "radio"
-          , Html.Attributes.id inputId
-          , Html.Attributes.name "action"
-          , Html.Attributes.value value
+          [ Attributes.type_ "radio"
+          , Attributes.id inputId
+          , Attributes.name "action"
+          , Attributes.value value
           ]
           []
       , Html.label
-          [ Html.Attributes.for inputId ]
+          [ Attributes.for inputId ]
           [ Html.text value ]
       ]
 
     tradeQty qty =
-      Html.input
-        [ Html.Attributes.type_ "text"
-        , Html.Attributes.class "tradeQty"
-        , Html.Attributes.value qty
+      View.Style.tradeQty
+        Html.input
+        [ Attributes.type_ "text"
+        , Attributes.value qty
         ]
         []
 
@@ -54,26 +56,26 @@ view { username, ready, resources, trade } =
             ]
 
     intCell value =
-      Html.td [Html.Attributes.class "number"] [Html.text (String.fromInt value)]
+      View.Style.number Html.td [] [Html.text (String.fromInt value)]
   in
   Html.table
     []
-    [ Html.thead
+    [ View.Style.thead
         []
         [ Html.tr
             []
-            [ Html.td [] [ Html.text "Action" ]
-            , Html.td [] [ Html.text "Amount" ]
-            , Html.td [] [ Html.text "Per turn" ]
-            , Html.td [] [ Html.text "Upgrade in" ]
-            , Html.td [] [ Html.text "Trade" ]
+            [ View.Style.td [] [ Html.text "Action" ]
+            , View.Style.td [] [ Html.text "Amount" ]
+            , View.Style.td [] [ Html.text "Per turn" ]
+            , View.Style.td [] [ Html.text "Upgrade in" ]
+            , View.Style.td [] [ Html.text "Trade" ]
             ]
         ]
-    , Html.tbody
+    , View.Style.tbody
       []
       [ Html.tr
           []
-          [ Html.td [] (action "Mine")
+          [ View.Style.td [] (action "Mine")
           , intCell 0
           , intCell 1
           , intCell 1
@@ -81,7 +83,7 @@ view { username, ready, resources, trade } =
           ]
       , Html.tr
         []
-        [ Html.td [] (action "Craft")
+        [ View.Style.td [] (action "Craft")
         , intCell 0
         , intCell 1
         , intCell 1
@@ -89,3 +91,4 @@ view { username, ready, resources, trade } =
         ]
       ]
     ]
+  |> Html.toUnstyled

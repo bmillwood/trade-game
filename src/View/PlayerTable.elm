@@ -1,13 +1,13 @@
 module View.PlayerTable exposing (view)
 
 import Dict exposing (Dict)
-import Html exposing (Html)
-import Html.Attributes
-import Html.Events
+import Html as Unstyled
+import Html.Styled as Html exposing (Html)
 
 import ByResource exposing (ByResource)
 import Resource
 import Model
+import View.Style
 
 type alias Row a =
   { ready : Html a
@@ -21,20 +21,20 @@ viewRow : Row a -> Html a
 viewRow { ready, username, resources, tradeMC, tradeCM } =
   let
     beforeResources =
-      [ Html.td [] [ ready ]
-      , Html.td [] [ username ]
+      [ View.Style.td [] [ ready ]
+      , View.Style.td [] [ username ]
       ]
     inResource { held, increment, upgradeIn } =
-      [ Html.td [] [ held ]
-      , Html.td [] [ increment ]
-      , Html.td [] [ upgradeIn ]
+      [ View.Style.td [] [ held ]
+      , View.Style.td [] [ increment ]
+      , View.Style.td [] [ upgradeIn ]
       ]
     inResources =
       case resources of
         { mined, crafted } -> inResource mined ++ inResource crafted
     afterResources =
-      [ Html.td [] [ tradeMC ]
-      , Html.td [] [ tradeCM ]
+      [ View.Style.td [] [ tradeMC ]
+      , View.Style.td [] [ tradeCM ]
       ]
   in
   Html.tr
@@ -63,11 +63,11 @@ rowFor { username, ready, resources, trade } =
   , tradeCM = showTrade Resource.Mined
   }
 
-view : List (Model.PlayerInfo Float) -> Html a
+view : List (Model.PlayerInfo Float) -> Unstyled.Html a
 view players =
   Html.table
     []
-    [ Html.thead
+    [ View.Style.thead
         []
         [ viewRow
             { ready = Html.text "R?"
@@ -88,7 +88,8 @@ view players =
             , tradeCM = Html.text "C/M"
             }
         ]
-    , Html.tbody
+    , View.Style.tbody
         []
         (List.map (\p -> viewRow (rowFor p)) players)
     ]
+  |> Html.toUnstyled
