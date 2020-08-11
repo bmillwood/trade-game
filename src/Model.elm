@@ -17,11 +17,17 @@ type alias PlayerInfo =
   , trade : TradeMatrix Float
   }
 
+type alias Choices =
+  { action : Maybe Resource
+  , trade : ByResource (TradeParam (Maybe Float))
+  }
+
 type alias LoginForm =
   { username : String }
 
 type alias Game =
-  { me : PlayerInfo
+  { choices : Choices
+  , me : PlayerInfo
   , others : List PlayerInfo
   }
 

@@ -22,10 +22,10 @@ viewPregame { username } =
     ]
 
 viewGame : Model.Game -> Html Msg.GameMsg
-viewGame { me, others } =
+viewGame { choices, me, others } =
   Html.form
     []
-    [ View.ResourceTable.view me
+    [ View.ResourceTable.view choices me
     , Html.p [] [Html.button [] [ Html.text "Ready" ]]
     , View.PlayerTable.view (me :: others)
     ]

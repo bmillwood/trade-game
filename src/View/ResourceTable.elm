@@ -5,33 +5,20 @@ import Html.Styled as Html exposing (Html)
 import Html.Styled.Attributes as Attributes
 import Html.Styled.Events as Events
 
+import ByResource
 import Model
+import Resource
 import View.Style
 
-view : Model.PlayerInfo -> Unstyled.Html a
-view { username, ready, resources, trade } =
+view : Model.Choices -> Model.PlayerInfo -> Unstyled.Html a
+view { action, trade } { username, ready, resources } =
   let
-    action value =
-      let
-        inputId = "action:" ++ value
-      in
-      [ Html.input
-          [ Attributes.type_ "radio"
-          , Attributes.id inputId
-          , Attributes.name "action"
-          , Attributes.value value
-          ]
-          []
-      , Html.label
-          [ Attributes.for inputId ]
-          [ Html.text value ]
-      ]
-
     tradeQty qty =
       View.Style.tradeQty
         Html.input
         [ Attributes.type_ "text"
         , Attributes.value qty
+        , Attributes.disabled ready
         ]
         []
 
@@ -43,20 +30,56 @@ view { username, ready, resources, trade } =
           , getForEachGive = String.fromFloat getForEachGive
           }
 
-    showTrade give get params =
-      case showTradeParams params of
-        { giveMax, getForEachGive } ->
-          Html.td
-            []
-            [ tradeQty giveMax
-            , Html.text give
-            , Html.text " for "
-            , tradeQty getForEachGive
-            , Html.text (get ++ " each")
-            ]
+    showTrade { give, get } { giveMax, getForEachGive } =
+      let
+        tradeMaybeQty qty =
+          Maybe.map String.fromFloat qty
+          |> Maybe.withDefault "-"
+          |> tradeQty
+      in
+      Html.td
+        []
+        [ Html.text "Offer up to "
+        , tradeMaybeQty giveMax
+        , Html.text give
+        , Html.text " for "
+        , tradeMaybeQty getForEachGive
+        , Html.text (get ++ " each")
+        ]
 
-    intCell value =
-      View.Style.number Html.td [] [Html.text (String.fromInt value)]
+    floatCell value =
+      View.Style.number Html.td [] [Html.text (String.fromFloat value)]
+
+    resourceRow resource =
+      let
+        (actionText, give, get) =
+          case resource of
+            Resource.Mined -> ("Mine", "C", "M")
+            Resource.Crafted -> ("Craft", "M", "C")
+        inputId = "action:" ++ actionText
+        resourceInfo = ByResource.get resource resources
+      in
+      Html.tr
+        []
+        [ View.Style.td
+            []
+            [ Html.input
+                [ Attributes.type_ "radio"
+                , Attributes.id inputId
+                , Attributes.name "action"
+                , Attributes.value actionText
+                , Attributes.disabled ready
+                ]
+                []
+            , Html.label
+              [ Attributes.for inputId ]
+              [ Html.text actionText ]
+            ]
+        , floatCell resourceInfo.held
+        , floatCell resourceInfo.increment
+        , floatCell resourceInfo.upgradeIn
+        , showTrade { give = give, get = get } (ByResource.get resource trade)
+        ]
   in
   Html.table
     []
@@ -73,22 +96,8 @@ view { username, ready, resources, trade } =
         ]
     , View.Style.tbody
       []
-      [ Html.tr
-          []
-          [ View.Style.td [] (action "Mine")
-          , intCell 0
-          , intCell 1
-          , intCell 1
-          , showTrade "M" "C" trade.crafted
-          ]
-      , Html.tr
-        []
-        [ View.Style.td [] (action "Craft")
-        , intCell 0
-        , intCell 1
-        , intCell 1
-        , showTrade "C" "M" trade.mined
-        ]
+      [ resourceRow Resource.Mined
+      , resourceRow Resource.Crafted
       ]
     ]
   |> Html.toUnstyled

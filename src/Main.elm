@@ -24,7 +24,11 @@ view = View.view
 
 fakeNewGame : { username : String } -> Model.Game
 fakeNewGame { username } =
-  { me =
+  { choices =
+      { action = Nothing
+      , trade = ByResource.both { giveMax = Nothing, getForEachGive = Nothing }
+      }
+  , me =
       { username = username
       , ready = False
       , resources = ByResource.both { held = 0, increment = 1, upgradeIn = 1 }
