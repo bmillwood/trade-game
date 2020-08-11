@@ -23,10 +23,17 @@ viewPregame { username } =
 
 viewGame : Model.Game -> Html Msg.GameMsg
 viewGame { choices, players } =
-  Html.form
+  Html.div
     []
     [ View.ResourceTable.view choices players.me
-    , Html.p [] [Html.button [] [ Html.text "Ready" ]]
+    , Html.p
+        []
+        [ Html.button
+            [ Html.Events.onClick (Msg.SetReady True)
+            , Html.Attributes.disabled players.me.ready
+            ]
+            [ Html.text "Ready" ]
+        ]
     , View.PlayerTable.view (players.me :: players.others)
     ]
 
