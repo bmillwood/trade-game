@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 module Main where
 
@@ -10,6 +11,7 @@ import GHC.Generics
 import System.IO.Error
 
 import qualified Data.Aeson as Aeson
+import Data.Aeson ((.:))
 import qualified Network.WebSockets as WS
 
 retryResourceBusy :: Int -> IO () -> IO ()
@@ -31,17 +33,81 @@ main = retryResourceBusy 60 (WS.runServer "localhost" 45286 app)
 app :: WS.ServerApp
 app = handleConnection <=< WS.acceptRequest
 
-data LoginRequest = LoginRequest { username :: String } deriving (Generic, Show)
+data LoginRequest = LoginRequest { loginRequestName :: String } deriving (Generic, Show)
 
 instance Aeson.FromJSON LoginRequest where
+  parseJSON = Aeson.withObject "LoginRequest" $ \v ->
+    LoginRequest <$> v .: "username"
+
+data ByResource a =
+  ByResource
+    { mined :: a
+    , crafted :: a
+    } deriving (Generic, Show)
+
+instance (Aeson.ToJSON a) => Aeson.ToJSON (ByResource a)
+
+bothResources :: a -> ByResource a
+bothResources x = ByResource { mined = x, crafted = x }
+
+data ResourceInfo a =
+  ResourceInfo
+    { held :: a
+    , increment :: a
+    , upgradeIn :: a
+    } deriving (Generic, Show)
+
+instance (Aeson.ToJSON a) => Aeson.ToJSON (ResourceInfo a)
+
+data TradeParam a =
+  TradeParam
+    { giveMax :: a
+    , getForEachGive :: a
+    } deriving (Generic, Show)
+
+instance (Aeson.ToJSON a) => Aeson.ToJSON (TradeParam a)
+
+data PlayerInfo =
+  PlayerInfo
+    { username :: String
+    , ready :: Bool
+    , resources :: ByResource (ResourceInfo Float)
+    , trade :: ByResource (Maybe (TradeParam Float))
+    } deriving (Generic, Show)
+
+instance Aeson.ToJSON PlayerInfo
+
+data Players =
+  Players
+    { me :: PlayerInfo
+    , others :: [PlayerInfo]
+    } deriving (Generic, Show)
+
+instance Aeson.ToJSON Players
+
+data ToClient
+  = LoginAccepted Players
+  | Other
+  deriving (Generic, Show)
+
+instance Aeson.ToJSON ToClient
+
+mockPlayers :: Players
+mockPlayers = Players { me, others = [] }
+  where
+    me =
+      PlayerInfo
+        { username = "bm"
+        , ready = False
+        , resources = bothResources ResourceInfo{ held = 0, increment = 1, upgradeIn = 1 }
+        , trade = bothResources Nothing
+        }
 
 handleConnection :: WS.Connection -> IO ()
 handleConnection conn = do
   login <- WS.receiveData conn
   case Aeson.decode login of
     Nothing -> putStrLn "couldn't decode"
-    Just LoginRequest{ username } -> do
-      WS.sendTextData conn (Aeson.encode ())
-      putStrLn ("username: " ++ username)
-      threadDelay 1000000
-      putStrLn "finished waiting"
+    Just LoginRequest{ loginRequestName } -> do
+      WS.sendTextData conn (Aeson.encode (LoginAccepted mockPlayers))
+      forever (threadDelay 1000000)

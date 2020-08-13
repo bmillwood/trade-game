@@ -22,6 +22,12 @@ type alias Choices =
   , trade : ByResource (TradeParam String)
   }
 
+newChoices : Choices
+newChoices =
+  { action = Nothing
+  , trade = ByResource.both { giveMax = "-", getForEachGive = "-" }
+  }
+
 type alias Players =
   { me : PlayerInfo
   , others : List PlayerInfo

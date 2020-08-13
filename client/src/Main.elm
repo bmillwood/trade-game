@@ -71,8 +71,8 @@ update msg model =
               ( model
               , Ports.login { username = preGame.loginForm.username }
               )
-            Msg.Accepted game ->
-              ( Model.InGame game, Cmd.none )
+            Msg.Accepted players ->
+              ( Model.InGame { choices = Model.newChoices, players = players }, Cmd.none )
             Msg.Failed error ->
               failed error
     Model.InGame game ->

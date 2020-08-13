@@ -7,7 +7,7 @@ type LoginFormMsg
   = Update Model.LoginForm
   | Submit
   | Connected
-  | Accepted Model.Game
+  | Accepted Model.Players
   | Failed String
 
 type GameMsg
