@@ -23,7 +23,9 @@ type alias Choices =
   }
 
 type alias LoginForm =
-  { username : String }
+  { endpoint : String
+  , username : String
+  }
 
 type alias Players =
   { me : PlayerInfo

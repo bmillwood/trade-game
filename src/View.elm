@@ -12,15 +12,27 @@ import View.ResourceTable
 import View.Style
 
 viewPregame : Model.LoginForm -> Html Msg.LoginFormMsg
-viewPregame { username } =
+viewPregame loginForm =
   Html.form
     [ Events.onSubmit Msg.Submit ]
-    [ Html.text "Username: "
-    , Html.input
-        [ Attributes.type_ "text"
-        , Events.onInput (\newName -> Msg.Update { username = newName })
+    [ Html.p
+        []
+        [ Html.text "Server: "
+        , Html.input
+            [ Attributes.type_ "text"
+            , Events.onInput (\input -> Msg.Update { loginForm | endpoint = input })
+            ]
+            [ Html.text loginForm.endpoint ]
         ]
-        [ Html.text username ]
+    , Html.p
+        []
+        [ Html.text "Username: "
+        , Html.input
+            [ Attributes.type_ "text"
+            , Events.onInput (\input -> Msg.Update { loginForm | username = input })
+            ]
+            [ Html.text loginForm.username ]
+        ]
     ]
 
 viewGame : Model.Game -> Html Msg.GameMsg

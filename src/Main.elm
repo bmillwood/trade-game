@@ -16,7 +16,7 @@ initResourceInfo = { held = 0, increment = 1, upgradeIn = 1 }
 
 init : () -> (Model, Cmd Msg)
 init () =
-  ( Model.PreGame { username = "" }
+  ( Model.PreGame { endpoint = "", username = "" }
   , Cmd.none
   )
 
@@ -41,8 +41,8 @@ fakeNewGame { username } =
   }
 
 submitLogin : Model.LoginForm -> Cmd Msg
-submitLogin username =
-  Task.perform identity (Task.succeed (Msg.PreGame (Msg.Accepted (fakeNewGame username))))
+submitLogin { username } =
+  Task.perform identity (Task.succeed (Msg.PreGame (Msg.Accepted (fakeNewGame { username = username }))))
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
