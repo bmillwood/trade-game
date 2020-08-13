@@ -83,9 +83,9 @@ viewStyled : Model.Model -> Html Msg
 viewStyled model =
   case model of
     Model.PreGame preGame ->
-      Html.map Msg.PreGame (viewPreGame preGame)
+      Html.map (Ok << Msg.PreGame) (viewPreGame preGame)
     Model.InGame game ->
-      Html.map Msg.InGame (viewGame game)
+      Html.map (Ok << Msg.InGame) (viewGame game)
 
 view : Model.Model -> Unstyled.Html Msg
 view = Html.toUnstyled << viewStyled

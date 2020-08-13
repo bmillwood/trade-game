@@ -1,4 +1,4 @@
-port module Main exposing (main)
+module Main exposing (main)
 
 import Browser
 import Dict exposing (Dict)
@@ -10,12 +10,9 @@ import Task
 import ByResource
 import Model exposing (Model)
 import Msg exposing (Msg)
+import Ports
 import Resource
-import Serialize
 import View
-
-port sendLogin : Json.Encode.Value -> Cmd msg
-port receiveFromServer : (Json.Decode.Value -> msg) -> Sub msg
 
 init : () -> (Model, Cmd Msg)
 init () =
@@ -48,38 +45,57 @@ fakeNewGame { username } =
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  case (msg, model) of
-    (Msg.PreGame formMsg, Model.PreGame preGame) ->
-      case formMsg of
-        Msg.Update newForm -> (Model.PreGame { preGame | loginForm = newForm }, Cmd.none)
-        Msg.Submit ->
-          ( Model.PreGame { preGame | loginState = Model.Waiting }
-          , sendLogin (Serialize.login preGame.loginForm)
+  let
+    ignore = (model, Cmd.none)
+  in
+  case model of
+    Model.PreGame preGame ->
+      let
+        failed error =
+          ( Model.PreGame { preGame | loginState = Model.Failed error }
+          , Cmd.none
           )
-        Msg.Accepted game -> (Model.InGame game, Cmd.none)
-        Msg.Failed error -> (Model.PreGame { preGame | loginState = Model.Failed error }, Cmd.none)
-    (Msg.ServerDecodeError error, Model.PreGame preGame) ->
-      (Model.PreGame { preGame | loginState = Model.Failed error }, Cmd.none)
-    (Msg.InGame gameMsg, Model.InGame game) ->
-      case gameMsg of
-        Msg.MakeChoice choices ->
-          (Model.InGame { game | choices = choices }, Cmd.none)
-        Msg.SetReady isReady ->
-          let
-            oldPlayers = game.players
-            oldMe = oldPlayers.me
-            newPlayers = { oldPlayers | me = { oldMe | ready = isReady } }
-          in
-          -- also need to send choices to the server
-          (Model.InGame { game | players = newPlayers }, Cmd.none)
-        Msg.ServerUpdate newPlayers ->
-          (Model.InGame { game | players = newPlayers }, Cmd.none)
-    (_, _) ->
-      (model, Cmd.none)
+      in
+      case msg of
+        Err error -> failed (Msg.errorToString error)
+        Ok (Msg.InGame _) -> ignore
+        Ok (Msg.PreGame pMsg) ->
+          case pMsg of
+            Msg.Update newForm ->
+              ( Model.PreGame { preGame | loginForm = newForm }, Cmd.none )
+            Msg.Submit ->
+              ( Model.PreGame { preGame | loginState = Model.Waiting }
+              , Ports.connect { endpoint = preGame.loginForm.endpoint }
+              )
+            Msg.Connected ->
+              ( model
+              , Ports.login { username = preGame.loginForm.username }
+              )
+            Msg.Accepted game ->
+              ( Model.InGame game, Cmd.none )
+            Msg.Failed error ->
+              failed error
+    Model.InGame game ->
+      case msg of
+        Err _ -> ignore
+        Ok (Msg.PreGame _) -> ignore
+        Ok (Msg.InGame gameMsg) ->
+          case gameMsg of
+            Msg.MakeChoice choices ->
+              (Model.InGame { game | choices = choices }, Cmd.none)
+            Msg.SetReady isReady ->
+              let
+                oldPlayers = game.players
+                oldMe = oldPlayers.me
+                newPlayers = { oldPlayers | me = { oldMe | ready = isReady } }
+              in
+              -- also need to send choices to the server
+              (Model.InGame { game | players = newPlayers }, Cmd.none)
+            Msg.ServerUpdate newPlayers ->
+              (Model.InGame { game | players = newPlayers }, Cmd.none)
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-  receiveFromServer Serialize.unimplemented
+subscriptions model = Ports.subscriptions model
 
 main =
   Browser.element
