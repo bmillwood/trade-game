@@ -37,8 +37,13 @@ type alias LoginForm =
   , username : String
   }
 
+type LoginState
+  = NotSubmitted
+  | Waiting
+  | Failed String
+
 type alias PreGameState =
-  { submitted : Bool
+  { loginState : LoginState
   , loginForm : LoginForm
   }
 

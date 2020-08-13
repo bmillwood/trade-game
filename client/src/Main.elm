@@ -15,12 +15,12 @@ import Serialize
 import View
 
 port sendLogin : Json.Encode.Value -> Cmd msg
--- port receiveFromServer : (Json.Decode.Value -> msg) -> Sub msg
+port receiveFromServer : (Json.Decode.Value -> msg) -> Sub msg
 
 init : () -> (Model, Cmd Msg)
 init () =
   ( Model.PreGame
-      { submitted = False
+      { loginState = Model.NotSubmitted
       , loginForm = { endpoint = "ws://localhost:45286", username = "" }
       }
   , Cmd.none
@@ -53,10 +53,13 @@ update msg model =
       case formMsg of
         Msg.Update newForm -> (Model.PreGame { preGame | loginForm = newForm }, Cmd.none)
         Msg.Submit ->
-          ( Model.PreGame { preGame | submitted = True }
+          ( Model.PreGame { preGame | loginState = Model.Waiting }
           , sendLogin (Serialize.login preGame.loginForm)
           )
         Msg.Accepted game -> (Model.InGame game, Cmd.none)
+        Msg.Failed error -> (Model.PreGame { preGame | loginState = Model.Failed error }, Cmd.none)
+    (Msg.ServerDecodeError error, Model.PreGame preGame) ->
+      (Model.PreGame { preGame | loginState = Model.Failed error }, Cmd.none)
     (Msg.InGame gameMsg, Model.InGame game) ->
       case gameMsg of
         Msg.MakeChoice choices ->
@@ -75,7 +78,8 @@ update msg model =
       (model, Cmd.none)
 
 subscriptions : Model -> Sub Msg
-subscriptions _ = Sub.none
+subscriptions _ =
+  receiveFromServer Serialize.unimplemented
 
 main =
   Browser.element

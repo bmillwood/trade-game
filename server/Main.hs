@@ -23,4 +23,6 @@ handleConnection conn = do
   login <- WS.receiveData conn
   case Aeson.decode login of
     Nothing -> putStrLn "couldn't decode"
-    Just LoginRequest{ username } -> putStrLn username
+    Just LoginRequest{ username } -> do
+      WS.sendTextData conn (Aeson.encode ())
+      putStrLn ("username: " ++ username)

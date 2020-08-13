@@ -16,9 +16,12 @@
       var endpoint = login.endpoint;
       var username = login.username;
       socket = new WebSocket(endpoint);
-      socket.onopen = function(event) {
+      socket.addEventListener("open", function(event) {
         socket.send(JSON.stringify({ username: username }));
-      }
+      });
+      socket.addEventListener("message", function(event) {
+        app.ports.receiveFromServer.send(event.data);
+      });
     });
     </script>
   </body>

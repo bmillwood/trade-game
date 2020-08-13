@@ -12,45 +12,54 @@ import View.ResourceTable
 import View.Style
 
 viewPreGame : Model.PreGameState -> Html Msg.LoginFormMsg
-viewPreGame { submitted, loginForm } =
-  Html.form
-    [ Events.onSubmit Msg.Submit ]
-    [ Html.p
-        []
-        [ Html.text "Server: "
-        , Html.input
-            [ Attributes.type_ "text"
-            , Attributes.name "endpoint"
-            , Attributes.value loginForm.endpoint
-            , Events.onInput (\input -> Msg.Update { loginForm | endpoint = input })
-            , Attributes.value loginForm.endpoint
-            , Attributes.disabled submitted
-            ]
-            []
+viewPreGame { loginState, loginForm } =
+  let
+    endpointInput =
+      Html.input
+        [ Attributes.type_ "text"
+        , Attributes.name "endpoint"
+        , Attributes.value loginForm.endpoint
+        , Events.onInput (\input -> Msg.Update { loginForm | endpoint = input })
+        , Attributes.disabled (loginState == Model.Waiting)
         ]
-    , Html.p
         []
-        [ Html.text "Username: "
-        , Html.input
-            [ Attributes.type_ "text"
-            , Attributes.name "username"
-            , Attributes.value loginForm.username
-            , Events.onInput (\input -> Msg.Update { loginForm | username = input })
-            , Attributes.value loginForm.username
-            , Attributes.disabled submitted
-            ]
-            []
+
+    usernameInput =
+      Html.input
+        [ Attributes.type_ "text"
+        , Attributes.name "username"
+        , Attributes.value loginForm.username
+        , Events.onInput (\input -> Msg.Update { loginForm | username = input })
+        , Attributes.disabled (loginState == Model.Waiting)
         ]
-    , Html.p
         []
-        [ Html.input
-            [ Attributes.type_ "submit"
-            , Attributes.name "login"
-            , Attributes.value "Login"
-            ]
-            []
+
+    submitButton =
+      Html.input
+        [ Attributes.type_ "submit"
+        , Attributes.name "login"
+        , Attributes.value "Login"
         ]
-    ]
+        []
+
+    loginFormControls =
+      [ Html.p [] [ Html.text "Server: ", endpointInput ]
+      , Html.p [] [ Html.text "Username: ", usernameInput ]
+      , Html.p [] [ submitButton]
+      ]
+
+    errorDisplay =
+      case loginState of
+        Model.Failed error ->
+          [ View.Style.errorDisplay
+              []
+              [ Html.text error ]
+          ]
+        _ -> []
+  in
+    Html.form
+      [ Events.onSubmit Msg.Submit ]
+      (loginFormControls ++ errorDisplay)
 
 viewGame : Model.Game -> Html Msg.GameMsg
 viewGame { choices, players } =

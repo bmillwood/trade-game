@@ -7,6 +7,7 @@ type LoginFormMsg
   = Update Model.LoginForm
   | Submit
   | Accepted Model.Game
+  | Failed String
 
 type GameMsg
   = MakeChoice Model.Choices
@@ -16,3 +17,4 @@ type GameMsg
 type Msg
   = PreGame LoginFormMsg
   | InGame GameMsg
+  | ServerDecodeError String

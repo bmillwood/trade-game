@@ -44,3 +44,12 @@ tradeQty tag =
     (number tag)
     [ Css.width (Css.em 2)
     ]
+
+errorDisplay : Tag msg
+errorDisplay =
+  Html.Styled.styled
+    Html.Styled.pre
+    [ Css.backgroundColor (Css.hsl 0 0.5 0.9)
+    , Css.padding (Css.em 1)
+    , Css.border3 (Css.px 1) Css.solid (Css.hsl 0 1 0.5)
+    ]
