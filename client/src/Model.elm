@@ -22,11 +22,6 @@ type alias Choices =
   , trade : ByResource (TradeParam String)
   }
 
-type alias LoginForm =
-  { endpoint : String
-  , username : String
-  }
-
 type alias Players =
   { me : PlayerInfo
   , others : List PlayerInfo
@@ -37,6 +32,16 @@ type alias Game =
   , players : Players
   }
 
+type alias LoginForm =
+  { endpoint : String
+  , username : String
+  }
+
+type alias PreGameState =
+  { submitted : Bool
+  , loginForm : LoginForm
+  }
+
 type Model
-  = PreGame LoginForm
+  = PreGame PreGameState
   | InGame Game

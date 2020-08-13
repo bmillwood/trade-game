@@ -22,6 +22,5 @@ handleConnection :: WS.Connection -> IO ()
 handleConnection conn = do
   login <- WS.receiveData conn
   case Aeson.decode login of
-    Nothing -> error "decode failed"
-    Just (LoginRequest { username }) ->
-      error username
+    Nothing -> putStrLn "couldn't decode"
+    Just LoginRequest{ username } -> putStrLn username

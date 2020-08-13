@@ -1,7 +1,9 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Browser
 import Dict exposing (Dict)
+import Json.Decode
+import Json.Encode
 import Html exposing (Html)
 import Task
 
@@ -9,14 +11,18 @@ import ByResource
 import Model exposing (Model)
 import Msg exposing (Msg)
 import Resource
+import Serialize
 import View
 
-initResourceInfo : Model.ResourceInfo Float
-initResourceInfo = { held = 0, increment = 1, upgradeIn = 1 }
+port sendLogin : Json.Encode.Value -> Cmd msg
+-- port receiveFromServer : (Json.Decode.Value -> msg) -> Sub msg
 
 init : () -> (Model, Cmd Msg)
 init () =
-  ( Model.PreGame { endpoint = "", username = "" }
+  ( Model.PreGame
+      { submitted = False
+      , loginForm = { endpoint = "ws://localhost:45286", username = "" }
+      }
   , Cmd.none
   )
 
@@ -40,17 +46,16 @@ fakeNewGame { username } =
       }
   }
 
-submitLogin : Model.LoginForm -> Cmd Msg
-submitLogin { username } =
-  Task.perform identity (Task.succeed (Msg.PreGame (Msg.Accepted (fakeNewGame { username = username }))))
-
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case (msg, model) of
-    (Msg.PreGame formMsg, Model.PreGame loginForm) ->
+    (Msg.PreGame formMsg, Model.PreGame preGame) ->
       case formMsg of
-        Msg.Update newForm -> (Model.PreGame newForm, Cmd.none)
-        Msg.Submit -> (model, submitLogin loginForm)
+        Msg.Update newForm -> (Model.PreGame { preGame | loginForm = newForm }, Cmd.none)
+        Msg.Submit ->
+          ( Model.PreGame { preGame | submitted = True }
+          , sendLogin (Serialize.login preGame.loginForm)
+          )
         Msg.Accepted game -> (Model.InGame game, Cmd.none)
     (Msg.InGame gameMsg, Model.InGame game) ->
       case gameMsg of

@@ -11,8 +11,8 @@ import View.PlayerTable
 import View.ResourceTable
 import View.Style
 
-viewPregame : Model.LoginForm -> Html Msg.LoginFormMsg
-viewPregame loginForm =
+viewPreGame : Model.PreGameState -> Html Msg.LoginFormMsg
+viewPreGame { submitted, loginForm } =
   Html.form
     [ Events.onSubmit Msg.Submit ]
     [ Html.p
@@ -23,6 +23,8 @@ viewPregame loginForm =
             , Attributes.name "endpoint"
             , Attributes.value loginForm.endpoint
             , Events.onInput (\input -> Msg.Update { loginForm | endpoint = input })
+            , Attributes.value loginForm.endpoint
+            , Attributes.disabled submitted
             ]
             []
         ]
@@ -34,6 +36,8 @@ viewPregame loginForm =
             , Attributes.name "username"
             , Attributes.value loginForm.username
             , Events.onInput (\input -> Msg.Update { loginForm | username = input })
+            , Attributes.value loginForm.username
+            , Attributes.disabled submitted
             ]
             []
         ]
@@ -69,8 +73,8 @@ viewGame { choices, players } =
 viewStyled : Model.Model -> Html Msg
 viewStyled model =
   case model of
-    Model.PreGame loginForm ->
-      Html.map Msg.PreGame (viewPregame loginForm)
+    Model.PreGame preGame ->
+      Html.map Msg.PreGame (viewPreGame preGame)
     Model.InGame game ->
       Html.map Msg.InGame (viewGame game)
 
