@@ -20,18 +20,31 @@ viewPregame loginForm =
         [ Html.text "Server: "
         , Html.input
             [ Attributes.type_ "text"
+            , Attributes.name "endpoint"
+            , Attributes.value loginForm.endpoint
             , Events.onInput (\input -> Msg.Update { loginForm | endpoint = input })
             ]
-            [ Html.text loginForm.endpoint ]
+            []
         ]
     , Html.p
         []
         [ Html.text "Username: "
         , Html.input
             [ Attributes.type_ "text"
+            , Attributes.name "username"
+            , Attributes.value loginForm.username
             , Events.onInput (\input -> Msg.Update { loginForm | username = input })
             ]
-            [ Html.text loginForm.username ]
+            []
+        ]
+    , Html.p
+        []
+        [ Html.input
+            [ Attributes.type_ "submit"
+            , Attributes.name "login"
+            , Attributes.value "Login"
+            ]
+            []
         ]
     ]
 
