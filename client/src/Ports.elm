@@ -196,7 +196,7 @@ subscriptions : Model.Model -> Sub Msg
 subscriptions model =
   let
     handler =
-      case model of
+      case model.state of
         Model.PreGame preGameState -> preGame preGameState
         Model.InGame gameState -> inGame gameState
   in

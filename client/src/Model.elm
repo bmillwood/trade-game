@@ -46,13 +46,18 @@ type alias LoginForm =
 type LoginState
   = NotSubmitted
   | Waiting
-  | Failed String
+  | Failed
 
 type alias PreGameState =
   { loginState : LoginState
   , loginForm : LoginForm
   }
 
-type Model
+type State
   = PreGame PreGameState
   | InGame Game
+
+type alias Model =
+  { error : Maybe String
+  , state : State
+  }

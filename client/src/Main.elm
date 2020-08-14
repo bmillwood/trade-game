@@ -16,10 +16,13 @@ import View
 
 init : () -> (Model, Cmd Msg)
 init () =
-  ( Model.PreGame
-      { loginState = Model.NotSubmitted
-      , loginForm = { endpoint = "ws://localhost:45286", username = "" }
-      }
+  ( { error = Nothing
+    , state =
+        Model.PreGame
+          { loginState = Model.NotSubmitted
+          , loginForm = { endpoint = "ws://localhost:45286", username = "" }
+          }
+    }
   , Cmd.none
   )
 
@@ -48,11 +51,16 @@ update msg model =
   let
     ignore = (model, Cmd.none)
   in
-  case model of
+  case model.state of
     Model.PreGame preGame ->
       let
+        updatePreGame newPreGame = { model | state = Model.PreGame newPreGame }
+
         failed error =
-          ( Model.PreGame { preGame | loginState = Model.Failed error }
+          ( { model
+            | state = Model.PreGame { preGame | loginState = Model.Failed }
+            , error = Just error
+            }
           , Cmd.none
           )
       in
@@ -62,9 +70,9 @@ update msg model =
         Ok (Msg.PreGame pMsg) ->
           case pMsg of
             Msg.Update newForm ->
-              ( Model.PreGame { preGame | loginForm = newForm }, Cmd.none )
+              ( updatePreGame { preGame | loginForm = newForm }, Cmd.none )
             Msg.Submit ->
-              ( Model.PreGame { preGame | loginState = Model.Waiting }
+              ( updatePreGame { preGame | loginState = Model.Waiting }
               , Ports.connect { endpoint = preGame.loginForm.endpoint }
               )
             Msg.Connected ->
@@ -72,24 +80,29 @@ update msg model =
               , Ports.login { username = preGame.loginForm.username }
               )
             Msg.Accepted players ->
-              ( Model.InGame { choices = Model.newChoices, players = players }, Cmd.none )
+              ( { model | state = Model.InGame { choices = Model.newChoices, players = players } }
+              , Cmd.none
+              )
             Msg.Failed error ->
               failed error
     Model.InGame game ->
+      let
+        updateGame newGame = { model | state = Model.InGame newGame }
+      in
       case msg of
         Err _ -> ignore
         Ok (Msg.PreGame _) -> ignore
         Ok (Msg.InGame gameMsg) ->
           case gameMsg of
             Msg.MakeChoice choices ->
-              ( Model.InGame { game | choices = choices }, Cmd.none )
+              ( updateGame { game | choices = choices }, Cmd.none )
             Msg.SetMeReady isReady ->
               let
                 oldPlayers = game.players
                 oldMe = oldPlayers.me
                 newPlayers = { oldPlayers | me = { oldMe | ready = isReady } }
               in
-              ( Model.InGame { game | players = newPlayers }
+              ( updateGame { game | players = newPlayers }
               , Ports.sendChoices game.choices
               )
             Msg.SetOtherReady username isReady ->
@@ -99,9 +112,9 @@ update msg model =
                 updateReady other = if other.username == username then { other | ready = isReady } else other
                 newPlayers = { oldPlayers | others = List.map updateReady oldOthers }
               in
-              ( Model.InGame { game | players = newPlayers }, Cmd.none )
+              ( updateGame { game | players = newPlayers }, Cmd.none )
             Msg.ServerUpdate newPlayers ->
-              ( Model.InGame { game | players = newPlayers }, Cmd.none )
+              ( updateGame { game | players = newPlayers }, Cmd.none )
 
 subscriptions : Model -> Sub Msg
 subscriptions model = Ports.subscriptions model

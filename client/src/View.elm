@@ -41,25 +41,13 @@ viewPreGame { loginState, loginForm } =
         , Attributes.value "Login"
         ]
         []
-
-    loginFormControls =
-      [ Html.p [] [ Html.text "Server: ", endpointInput ]
-      , Html.p [] [ Html.text "Username: ", usernameInput ]
-      , Html.p [] [ submitButton]
-      ]
-
-    errorDisplay =
-      case loginState of
-        Model.Failed error ->
-          [ View.Style.errorDisplay
-              []
-              [ Html.text error ]
-          ]
-        _ -> []
   in
-    Html.form
-      [ Events.onSubmit Msg.Submit ]
-      (loginFormControls ++ errorDisplay)
+  Html.form
+    [ Events.onSubmit Msg.Submit ]
+    [ Html.p [] [ Html.text "Server: ", endpointInput ]
+    , Html.p [] [ Html.text "Username: ", usernameInput ]
+    , Html.p [] [ submitButton]
+    ]
 
 viewGame : Model.Game -> Html Msg.GameMsg
 viewGame { choices, players } =
@@ -80,12 +68,24 @@ viewGame { choices, players } =
     ]
 
 viewStyled : Model.Model -> Html Msg
-viewStyled model =
-  case model of
-    Model.PreGame preGame ->
-      Html.map (Ok << Msg.PreGame) (viewPreGame preGame)
-    Model.InGame game ->
-      Html.map (Ok << Msg.InGame) (viewGame game)
+viewStyled { error, state } =
+  let
+    errorDisplay =
+      case error of
+        Nothing ->
+          []
+        Just errorMsg ->
+          [ View.Style.errorDisplay [] [ Html.text errorMsg ] ]
+
+    stateDisplay =
+      [ case state of
+          Model.PreGame preGame ->
+            Html.map (Ok << Msg.PreGame) (viewPreGame preGame)
+          Model.InGame game ->
+            Html.map (Ok << Msg.InGame) (viewGame game)
+      ]
+  in
+  Html.div [] (errorDisplay ++ stateDisplay)
 
 view : Model.Model -> Unstyled.Html Msg
 view = Html.toUnstyled << viewStyled
