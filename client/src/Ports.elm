@@ -113,21 +113,21 @@ connectionStatus =
 byResource : Json.Decode.Decoder a -> Json.Decode.Decoder (ByResource a)
 byResource decoder =
   Json.Decode.map2
-    (\mined crafted -> { mined = mined, crafted = crafted })
+    ByResource
     (Json.Decode.field "mined" decoder)
     (Json.Decode.field "crafted" decoder)
 
 tradeParam : Json.Decode.Decoder a -> Json.Decode.Decoder (Model.TradeParam a)
 tradeParam decoder =
   Json.Decode.map2
-    (\giveMax getForEachGive -> { giveMax = giveMax, getForEachGive = getForEachGive })
+    Model.TradeParam
     (Json.Decode.field "giveMax" decoder)
     (Json.Decode.field "getForEachGive" decoder)
 
 resourceInfo : Json.Decode.Decoder (Model.ResourceInfo Float)
 resourceInfo =
   Json.Decode.map3
-    (\held increment upgradeIn -> { held = held, increment = increment, upgradeIn = upgradeIn })
+    Model.ResourceInfo
     (Json.Decode.field "held" Json.Decode.float)
     (Json.Decode.field "increment" Json.Decode.float)
     (Json.Decode.field "upgradeIn" Json.Decode.float)
@@ -135,12 +135,7 @@ resourceInfo =
 playerInfo : Json.Decode.Decoder Model.PlayerInfo
 playerInfo =
   Json.Decode.map4
-    (\username ready resources trade ->
-       { username = username
-       , ready = ready
-       , resources = resources
-       , trade = trade
-       })
+    Model.PlayerInfo
     (Json.Decode.field "username" Json.Decode.string)
     (Json.Decode.field "ready" Json.Decode.bool)
     (Json.Decode.field "resources" (byResource resourceInfo))
@@ -149,7 +144,7 @@ playerInfo =
 players : Json.Decode.Decoder Model.Players
 players =
   Json.Decode.map2
-    (\me others -> { me = me, others = others })
+    Model.Players
     (Json.Decode.field "me" playerInfo)
     (Json.Decode.field "others" (Json.Decode.list playerInfo))
 
