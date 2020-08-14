@@ -82,17 +82,26 @@ update msg model =
         Ok (Msg.InGame gameMsg) ->
           case gameMsg of
             Msg.MakeChoice choices ->
-              (Model.InGame { game | choices = choices }, Cmd.none)
-            Msg.SetReady isReady ->
+              ( Model.InGame { game | choices = choices }, Cmd.none )
+            Msg.SetMeReady isReady ->
               let
                 oldPlayers = game.players
                 oldMe = oldPlayers.me
                 newPlayers = { oldPlayers | me = { oldMe | ready = isReady } }
               in
-              -- also need to send choices to the server
-              (Model.InGame { game | players = newPlayers }, Cmd.none)
+              ( Model.InGame { game | players = newPlayers }
+              , Ports.sendChoices game.choices
+              )
+            Msg.SetOtherReady username isReady ->
+              let
+                oldPlayers = game.players
+                oldOthers = oldPlayers.others
+                updateReady other = if other.username == username then { other | ready = isReady } else other
+                newPlayers = { oldPlayers | others = List.map updateReady oldOthers }
+              in
+              ( Model.InGame { game | players = newPlayers }, Cmd.none )
             Msg.ServerUpdate newPlayers ->
-              (Model.InGame { game | players = newPlayers }, Cmd.none)
+              ( Model.InGame { game | players = newPlayers }, Cmd.none )
 
 subscriptions : Model -> Sub Msg
 subscriptions model = Ports.subscriptions model

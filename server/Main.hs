@@ -86,8 +86,8 @@ data Players =
 instance Aeson.ToJSON Players
 
 data ToClient
-  = LoginAccepted Players
-  | Other
+  = UpdatePlayers Players
+  | PlayerReady { playerName :: String, isReady :: Bool }
   deriving (Generic, Show)
 
 instance Aeson.ToJSON ToClient
@@ -109,5 +109,5 @@ handleConnection conn = do
   case Aeson.decode login of
     Nothing -> putStrLn "couldn't decode"
     Just LoginRequest{ loginRequestName } -> do
-      WS.sendTextData conn (Aeson.encode (LoginAccepted mockPlayers))
+      WS.sendTextData conn (Aeson.encode (UpdatePlayers mockPlayers))
       forever (threadDelay 1000000)

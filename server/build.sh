@@ -11,7 +11,7 @@ do
   then
     cabal run &
     waitForSource
-    kill %%
+    killall spec-game-server
   else
     waitForSource
   fi

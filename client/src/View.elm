@@ -70,7 +70,7 @@ viewGame { choices, players } =
     , Html.p
         []
         [ Html.button
-            [ Events.onClick (Msg.SetReady True)
+            [ Events.onClick (Msg.SetMeReady True)
             , Attributes.disabled players.me.ready
             ]
             [ Html.text "Ready" ]

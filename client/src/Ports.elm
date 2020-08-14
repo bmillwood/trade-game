@@ -3,6 +3,7 @@ port module Ports exposing (..)
 import Dict
 import Json.Decode
 import Json.Encode
+import Maybe
 
 import ByResource exposing (ByResource)
 import Model
@@ -29,6 +30,37 @@ send value = request { kind = "send", payload = value }
 login : { username : String } -> Cmd msg
 login { username } =
   Json.Encode.object [ ("username", Json.Encode.string username) ]
+  |> send
+
+encodeNullable : (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
+encodeNullable encode m = Maybe.withDefault Json.Encode.null (Maybe.map encode m)
+
+encodeResource : Resource -> Json.Encode.Value
+encodeResource resource =
+  case resource of
+    Resource.Mined -> Json.Encode.string "mined"
+    Resource.Crafted -> Json.Encode.string "crafted"
+
+encodeByResource : (a -> Json.Encode.Value) -> ByResource a -> Json.Encode.Value
+encodeByResource encode { mined, crafted } =
+  Json.Encode.object
+    [ ( "mined", encode mined )
+    , ( "crafted", encode crafted )
+    ]
+
+encodeTradeParam : (qty -> Json.Encode.Value) -> Model.TradeParam qty -> Json.Encode.Value
+encodeTradeParam encode { giveMax, getForEachGive } =
+  Json.Encode.object
+    [ ( "giveMax", encode giveMax )
+    , ( "getForEachGive", encode getForEachGive )
+    ]
+
+sendChoices : Model.Choices -> Cmd msg
+sendChoices { action, trade } =
+  Json.Encode.object
+    [ ( "action", encodeNullable encodeResource action )
+    , ( "trade", encodeByResource (encodeTradeParam Json.Encode.string) trade )
+    ]
   |> send
 
 type ConnectionStatus
@@ -63,7 +95,8 @@ variant { name } values =
          Just (WithContents decoder) -> Json.Decode.field "contents" decoder)
 
 type ServerMsg
-  = LoginAccepted Model.Players
+  = UpdatePlayers Model.Players
+  | PlayerReady String Bool
 
 type FromJS
   = ServerStatus ConnectionStatus
@@ -122,9 +155,17 @@ players =
 
 serverMsg : Json.Decode.Decoder ServerMsg
 serverMsg =
+  let
+    playerReady =
+      Json.Decode.map2
+        PlayerReady
+        (Json.Decode.field "playerName" Json.Decode.string)
+        (Json.Decode.field "isReady" Json.Decode.bool)
+  in
   variant
     { name = "serverMsg" }
-    [ ("LoginAccepted", WithContents (Json.Decode.map LoginAccepted players))
+    [ ( "UpdatePlayers", WithContents (Json.Decode.map UpdatePlayers players) )
+    , ( "PlayerReady", WithContents playerReady )
     ]
 
 fromJS : Json.Decode.Decoder FromJS
@@ -140,7 +181,16 @@ preGame model msg =
   case msg of
     ServerStatus Connected -> Ok (Msg.PreGame Msg.Connected)
     ServerStatus Disconnected -> Err Msg.ServerDisconnected
-    FromServer (LoginAccepted newPlayers) -> Ok (Msg.PreGame (Msg.Accepted newPlayers))
+    FromServer (UpdatePlayers newPlayers) -> Ok (Msg.PreGame (Msg.Accepted newPlayers))
+    FromServer (PlayerReady playerName isReady) -> Err (Msg.ServerProtocolError "PlayerReady before we entered a game")
+
+inGame : Model.Game -> FromJS -> Msg
+inGame model msg =
+  case msg of
+    ServerStatus Connected -> Err (Msg.DriverProtocolError "Received Connected but we are already connected?")
+    ServerStatus Disconnected -> Err Msg.ServerDisconnected
+    FromServer (UpdatePlayers newPlayers) -> Ok (Msg.InGame (Msg.ServerUpdate newPlayers))
+    FromServer (PlayerReady playerName isReady) -> Ok (Msg.InGame (Msg.SetOtherReady playerName isReady))
 
 subscriptions : Model.Model -> Sub Msg
 subscriptions model =
@@ -148,7 +198,7 @@ subscriptions model =
     handler =
       case model of
         Model.PreGame preGameState -> preGame preGameState
-        Model.InGame _ -> (\msg -> Err (Msg.ServerProtocolError "we don't handle InGame messages yet"))
+        Model.InGame gameState -> inGame gameState
   in
   receiveFromJS <| \value ->
     case Json.Decode.decodeValue (Json.Decode.map handler fromJS) value of

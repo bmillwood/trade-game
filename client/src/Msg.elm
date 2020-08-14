@@ -12,7 +12,8 @@ type LoginFormMsg
 
 type GameMsg
   = MakeChoice Model.Choices
-  | SetReady Bool
+  | SetMeReady Bool
+  | SetOtherReady String Bool
   | ServerUpdate Model.Players
 
 type OkMsg
