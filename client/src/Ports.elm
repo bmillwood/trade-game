@@ -27,9 +27,17 @@ connect { endpoint } = request { kind = "connect", payload = Json.Encode.string 
 send : Json.Encode.Value -> Cmd msg
 send value = request { kind = "send", payload = value }
 
+contentsWithTag : String -> Json.Encode.Value -> Json.Encode.Value
+contentsWithTag tag contents =
+  Json.Encode.object
+    [ ( "tag", Json.Encode.string tag )
+    , ( "contents", contents )
+    ]
+
 login : { username : String } -> Cmd msg
 login { username } =
-  Json.Encode.object [ ("username", Json.Encode.string username) ]
+  Json.Encode.object [ ("loginRequestName", Json.Encode.string username) ]
+  |> contentsWithTag "LoginRequest"
   |> send
 
 encodeNullable : (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value
@@ -58,9 +66,10 @@ encodeTradeParam encode { giveMax, getForEachGive } =
 sendChoices : Model.Choices -> Cmd msg
 sendChoices { action, trade } =
   Json.Encode.object
-    [ ( "action", encodeNullable encodeResource action )
-    , ( "trade", encodeByResource (encodeTradeParam Json.Encode.string) trade )
+    [ ( "takeAction", encodeNullable encodeResource action )
+    , ( "setTrade", encodeByResource (encodeTradeParam Json.Encode.string) trade )
     ]
+  |> contentsWithTag "MadeChoices"
   |> send
 
 type ConnectionStatus

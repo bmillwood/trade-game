@@ -5,13 +5,18 @@ function waitForSource() {
   inotifywait --quiet -e modify -e delete .
 }
 
+killGrandchild() {
+  pkill --parent $(pgrep --parent $1)
+}
+
 while sleep 1
 do
   if cabal build
   then
     cabal run &
     waitForSource
-    killall spec-game-server
+    jobs -x killGrandchild %%
+    wait
   else
     waitForSource
   fi
