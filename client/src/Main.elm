@@ -1,29 +1,33 @@
 module Main exposing (main)
 
 import Browser
-import Dict exposing (Dict)
 import Json.Decode
-import Json.Encode
 import Html exposing (Html)
 import Task
 
 import ByResource
+import LocationParser
 import Model exposing (Model)
 import Msg exposing (Msg)
 import Ports
 import Resource
 import View
 
-init : () -> (Model, Cmd Msg)
-init () =
-  ( { error = Nothing
+init : Json.Decode.Value -> (Model, Cmd Msg)
+init flags =
+  let
+    { error, endpoint, username, autoLogin } = LocationParser.parseLocation flags
+  in
+  ( { error = error
     , state =
         Model.PreGame
           { loginState = Model.NotSubmitted
-          , loginForm = { endpoint = "ws://localhost:45286", username = "" }
+          , loginForm = { endpoint = endpoint, username = username }
           }
     }
-  , Cmd.none
+  , if autoLogin
+    then Task.perform identity (Task.succeed (Ok (Msg.PreGame Msg.Submit)))
+    else Cmd.none
   )
 
 view : Model -> Html Msg
