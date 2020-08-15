@@ -36,8 +36,10 @@ contentsWithTag tag contents =
 
 login : { username : String } -> Cmd msg
 login { username } =
-  Json.Encode.object [ ("loginRequestName", Json.Encode.string username) ]
-  |> contentsWithTag "LoginRequest"
+  Json.Encode.object
+    [ ( "tag", Json.Encode.string "LoginRequest" )
+    , ( "loginRequestName", Json.Encode.string username )
+    ]
   |> send
 
 encodeNullable : (a -> Json.Encode.Value) -> Maybe a -> Json.Encode.Value

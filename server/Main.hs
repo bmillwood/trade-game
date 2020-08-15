@@ -53,7 +53,7 @@ handleConnection :: WS.Connection -> IO ()
 handleConnection conn = do
   login <- WS.receiveData conn
   case Aeson.decode login of
-    Nothing -> putStrLn "couldn't decode"
+    Nothing -> putStrLn ("couldn't decode: " ++ show login)
     Just LoginRequest{ loginRequestName } -> do
       loggedIn conn loginRequestName
     Just other -> putStrLn ("unexpected message: " ++ show other)
