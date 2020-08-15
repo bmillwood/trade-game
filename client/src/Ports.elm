@@ -91,6 +91,7 @@ plainVariant { name } values =
 
 type VariantSpec a
   = Plain a
+  | WithFieldsInline (Json.Decode.Decoder a)
   | WithContents (Json.Decode.Decoder a)
 
 variant : { name : String } -> List (String, VariantSpec a) -> Json.Decode.Decoder a
@@ -103,6 +104,7 @@ variant { name } values =
        case Dict.get k dict of
          Nothing -> Json.Decode.fail (name ++ ": unknown tag: " ++ k)
          Just (Plain v) -> Json.Decode.succeed v
+         Just (WithFieldsInline decoder) -> decoder
          Just (WithContents decoder) -> Json.Decode.field "contents" decoder)
 
 type ServerMsg
@@ -171,7 +173,7 @@ serverMsg =
   variant
     { name = "serverMsg" }
     [ ( "UpdatePlayers", WithContents (Json.Decode.map UpdatePlayers players) )
-    , ( "PlayerReady", WithContents playerReady )
+    , ( "PlayerReady", WithFieldsInline playerReady )
     ]
 
 fromJS : Json.Decode.Decoder FromJS

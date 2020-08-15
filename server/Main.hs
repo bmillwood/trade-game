@@ -4,11 +4,13 @@
 {-# LANGUAGE TupleSections #-}
 module Main where
 
+import Control.Concurrent.Async
 import Control.Concurrent
 import Control.Concurrent.Chan
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
+import Data.Void
 import GHC.Generics
 import System.IO.Error
 
@@ -94,10 +96,18 @@ loggedIn state broadcast conn username = do
     let newGame = addPlayer username game
     writeChan broadcast (Refresh newGame)
     return newGame
-  _ <- forkIO $ readThread state broadcast conn username
-  writeThread state broadcast conn username
+  (readDoesNotReturn, neitherDoesWrite) <- concurrently
+    (readThread state broadcast conn username)
+    (writeThread state broadcast conn username)
+    `onException` do
+    modifyMVar_ state $ \game -> do
+      let newGame = removePlayer username game
+      writeChan broadcast (Refresh newGame)
+      return newGame
+  absurd readDoesNotReturn
+  absurd neitherDoesWrite
 
-readThread :: MVar GameState -> Chan InternalBroadcast -> WS.Connection -> String -> IO ()
+readThread :: MVar GameState -> Chan InternalBroadcast -> WS.Connection -> String -> IO Void
 readThread state broadcast conn username = forever $ do
   msg <- readFromClient conn
   case msg of
@@ -116,7 +126,7 @@ readThread state broadcast conn username = forever $ do
           writeChan broadcast (Refresh newGame)
           putMVar state newGame
 
-writeThread :: MVar GameState -> Chan InternalBroadcast -> WS.Connection -> String -> IO ()
+writeThread :: MVar GameState -> Chan InternalBroadcast -> WS.Connection -> String -> IO Void
 writeThread state broadcast conn username = do
   withMVar state (sendView conn username)
   forever $ do
