@@ -94,7 +94,7 @@ update msg model =
         updateGame newGame = { model | state = Model.InGame newGame }
       in
       case msg of
-        Err _ -> ignore
+        Err error -> ( { model | error = Just (Msg.errorToString error) }, Cmd.none )
         Ok (Msg.PreGame _) -> ignore
         Ok (Msg.InGame gameMsg) ->
           case gameMsg of

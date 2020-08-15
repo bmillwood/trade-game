@@ -48,8 +48,8 @@ encodeNullable encode m = Maybe.withDefault Json.Encode.null (Maybe.map encode m
 encodeResource : Resource -> Json.Encode.Value
 encodeResource resource =
   case resource of
-    Resource.Mined -> Json.Encode.string "mined"
-    Resource.Crafted -> Json.Encode.string "crafted"
+    Resource.Mined -> Json.Encode.string "Mined"
+    Resource.Crafted -> Json.Encode.string "Crafted"
 
 encodeByResource : (a -> Json.Encode.Value) -> ByResource a -> Json.Encode.Value
 encodeByResource encode { mined, crafted } =
