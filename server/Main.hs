@@ -12,40 +12,45 @@ import Control.Exception
 import Control.Monad
 import Data.Void
 import GHC.Generics
+import System.Environment (getArgs)
 import System.IO.Error
 
 import qualified Data.Aeson as Aeson
 import Data.Aeson ((.:))
+import qualified Network.Wai as Wai
+import qualified Network.Wai.Application.Static as WaiStatic
+import qualified Network.Wai.Handler.Warp as Warp
+import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.WebSockets as WS
 
 import Game
-
-retryResourceBusy :: Int -> IO () -> IO ()
-retryResourceBusy retries io =
-  if retries <= 0
-  then io
-  else do
-    r <- tryJust (guard . isAlreadyInUseError) io
-    case r of
-      Left _ -> do
-        putStrLn ("already in use error, waiting 1s and trying " ++ show retries ++ " more times")
-        threadDelay 1000000
-        retryResourceBusy (retries - 1) io
-      Right v -> return v
 
 data InternalBroadcast
   = Ready String
   | Refresh GameState
   deriving (Show)
 
+data ServerState
+  = ServerState{ gameStore :: MVar GameState, broadcast :: Chan InternalBroadcast }
+
+newServerState :: IO ServerState
+newServerState = ServerState <$> newMVar initGameState <*> newChan
+
 main :: IO ()
 main = do
-  state <- newMVar initGameState
-  broadcast <- newChan
-  retryResourceBusy 60 (WS.runServer "localhost" 45286 (app state broadcast))
+  [staticPath] <- getArgs
+  state <- newServerState
+  Warp.runEnv 45286 (waiApp state staticPath)
 
-app :: MVar GameState -> Chan InternalBroadcast -> WS.ServerApp
-app state broadcast = handleConnection state broadcast <=< WS.acceptRequest
+waiApp :: ServerState -> FilePath -> Wai.Application
+waiApp state staticPath =
+  WaiWS.websocketsOr WS.defaultConnectionOptions (wsApp state) (staticApp staticPath)
+
+staticApp :: FilePath -> Wai.Application
+staticApp staticPath = WaiStatic.staticApp (WaiStatic.defaultFileServerSettings staticPath)
+
+wsApp :: ServerState -> WS.ServerApp
+wsApp state = handleConnection state <=< WS.acceptRequest
 
 data FromClient
   = LoginRequest { loginRequestName :: String }
@@ -74,14 +79,14 @@ readFromClient conn = do
       return Nothing
     Just msg -> return (Just msg)
 
-handleConnection :: MVar GameState -> Chan InternalBroadcast -> WS.Connection -> IO ()
-handleConnection state broadcast conn = do
+handleConnection :: ServerState -> WS.Connection -> IO ()
+handleConnection state@ServerState{ broadcast } conn = do
   msg <- readFromClient conn
   case msg of
     Nothing -> return ()
     Just LoginRequest{ loginRequestName } -> do
       broadcast <- dupChan broadcast
-      loggedIn state broadcast conn loginRequestName
+      loggedIn state conn loginRequestName
     Just other -> putStrLn ("unexpected message: " ++ show other)
 
 sendView :: WS.Connection -> String -> GameState -> IO ()
@@ -90,45 +95,45 @@ sendView conn username game =
     Nothing -> return ()
     Just view -> sendToClient conn (UpdatePlayers view)
 
-loggedIn :: MVar GameState -> Chan InternalBroadcast -> WS.Connection -> String -> IO ()
-loggedIn state broadcast conn username = do
-  modifyMVar_ state $ \game -> do
+loggedIn :: ServerState -> WS.Connection -> String -> IO ()
+loggedIn state@ServerState{ gameStore, broadcast } conn username = do
+  modifyMVar_ gameStore $ \game -> do
     let newGame = addPlayer username game
     writeChan broadcast (Refresh newGame)
     return newGame
   (readDoesNotReturn, neitherDoesWrite) <- concurrently
-    (readThread state broadcast conn username)
-    (writeThread state broadcast conn username)
+    (readThread state conn username)
+    (writeThread state conn username)
     `onException` do
-    modifyMVar_ state $ \game -> do
+    modifyMVar_ gameStore $ \game -> do
       let newGame = removePlayer username game
       writeChan broadcast (Refresh newGame)
       return newGame
   absurd readDoesNotReturn
   absurd neitherDoesWrite
 
-readThread :: MVar GameState -> Chan InternalBroadcast -> WS.Connection -> String -> IO Void
-readThread state broadcast conn username = forever $ do
+readThread :: ServerState -> WS.Connection -> String -> IO Void
+readThread ServerState{ gameStore, broadcast } conn username = forever $ do
   msg <- readFromClient conn
   case msg of
     Nothing -> return ()
     Just LoginRequest{} -> putStrLn ("unexpected second login: " ++ show msg)
     Just (MadeChoices choices) -> do
       print (username, choices)
-      game <- fmap (setChoices username choices) (takeMVar state)
+      game <- fmap (setChoices username choices) (takeMVar gameStore)
       case executeTurnIfReady game of
         Nothing -> do
           putStrLn "not all ready"
           writeChan broadcast (Ready username)
-          putMVar state game
+          putMVar gameStore game
         Just newGame -> do
           putStrLn "executing turn"
           writeChan broadcast (Refresh newGame)
-          putMVar state newGame
+          putMVar gameStore newGame
 
-writeThread :: MVar GameState -> Chan InternalBroadcast -> WS.Connection -> String -> IO Void
-writeThread state broadcast conn username = do
-  withMVar state (sendView conn username)
+writeThread :: ServerState -> WS.Connection -> String -> IO Void
+writeThread ServerState{ gameStore, broadcast } conn username = do
+  withMVar gameStore (sendView conn username)
   forever $ do
     msg <- readChan broadcast
     print ("broadcast", username, msg)

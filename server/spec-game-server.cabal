@@ -18,6 +18,15 @@ executable spec-game-server
   other-modules:       Game
   -- other-extensions:
   build-depends:
-    aeson, async, base, bytestring, containers, websockets
+    aeson,
+    async,
+    base,
+    bytestring,
+    containers,
+    wai,
+    wai-app-static,
+    wai-websockets,
+    warp,
+    websockets
   -- hs-source-dirs:
   default-language:    Haskell2010
