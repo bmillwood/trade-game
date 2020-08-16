@@ -106,6 +106,7 @@ loggedIn state@ServerState{ gameStore, broadcast } conn username = do
     (writeThread state conn username)
     `onException` do
     modifyMVar_ gameStore $ \game -> do
+      print ("disconnected", username)
       let newGame = removePlayer username game
       writeChan broadcast (Refresh newGame)
       return newGame
@@ -119,7 +120,7 @@ readThread ServerState{ gameStore, broadcast } conn username = forever $ do
     Nothing -> return ()
     Just LoginRequest{} -> putStrLn ("unexpected second login: " ++ show msg)
     Just (MadeChoices choices) -> do
-      print (username, choices)
+      print ("choices", username)
       game <- fmap (setChoices username choices) (takeMVar gameStore)
       case executeTurnIfReady game of
         Nothing -> do
@@ -136,7 +137,6 @@ writeThread ServerState{ gameStore, broadcast } conn username = do
   withMVar gameStore (sendView conn username)
   forever $ do
     msg <- readChan broadcast
-    print ("broadcast", username, msg)
     case msg of
       Ready playerName ->
         sendToClient conn PlayerReady{ playerName, isReady = True }
