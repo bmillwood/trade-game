@@ -84,9 +84,10 @@ handleConnection state@ServerState{ broadcast } conn = do
   msg <- readFromClient conn
   case msg of
     Nothing -> return ()
-    Just LoginRequest{ loginRequestName } -> do
-      broadcast <- dupChan broadcast
-      loggedIn state conn loginRequestName
+    Just LoginRequest{ loginRequestName } ->
+      WS.withPingThread conn 30 (print ("ping", loginRequestName)) $ do
+        broadcast <- dupChan broadcast
+        loggedIn state conn loginRequestName
     Just other -> putStrLn ("unexpected message: " ++ show other)
 
 sendView :: WS.Connection -> String -> GameState -> IO ()
@@ -97,6 +98,7 @@ sendView conn username game =
 
 loggedIn :: ServerState -> WS.Connection -> String -> IO ()
 loggedIn state@ServerState{ gameStore, broadcast } conn username = do
+  print ("logged in", username)
   modifyMVar_ gameStore $ \game -> do
     let newGame = addPlayer username game
     writeChan broadcast (Refresh newGame)
