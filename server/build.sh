@@ -13,7 +13,7 @@ while sleep 1
 do
   if cabal build
   then
-    cabal run spec-game-server -- static-root &
+    cabal run trade-game-server -- static-root &
     waitForSource
     jobs -x killGrandchild %%
     wait

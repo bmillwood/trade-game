@@ -1,8 +1,8 @@
 cabal-version:       2.4
 
-name:                spec-game-server
+name:                trade-game-server
 version:             0.1.0.0
-synopsis:            Server for the specialization game
+synopsis:            Server for a game with trading
 -- description:
 -- bug-reports:
 license:             BSD-3-Clause
@@ -13,7 +13,7 @@ maintainer:          thebenmachine+git@gmail.com
 -- category:
 -- extra-source-files:
 
-executable spec-game-server
+executable trade-game-server
   main-is:             Main.hs
   other-modules:       Game
   -- other-extensions:
