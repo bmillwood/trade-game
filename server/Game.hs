@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 module Game
   ( GameState(..)
@@ -19,8 +18,6 @@ import qualified Data.Map as Map
 import GHC.Generics
 
 import qualified Data.Aeson as Aeson
-import Data.Aeson ((.:))
-import qualified Network.WebSockets as WS
 
 data Resource
   = Mined
@@ -65,7 +62,7 @@ produceResource amount ResourceInfo{ held, increment, upgradeIn }
 produce :: (Num n, Ord n) => Resource -> ByResource (ResourceInfo n) -> ByResource (ResourceInfo n)
 produce Mined resources@ByResource{ mined = mined@ResourceInfo{ increment } } =
   resources{ mined = produceResource increment mined }
-produce Crafted resources@ByResource{ mined, crafted } =
+produce Crafted ByResource{ mined, crafted } =
   case ( mined, crafted ) of
     ( ResourceInfo{ held = heldMined }, ResourceInfo{ increment } )
       -> ByResource { mined = mined{ held = heldMined - amount }, crafted = produceResource amount crafted }
@@ -130,11 +127,11 @@ doTrades :: Map.Map String PlayerInfo -> Map.Map String PlayerInfo
 doTrades players = players
 
 executeTurnIfReady :: GameState -> Maybe GameState
-executeTurnIfReady unchanged@(GameState players) =
+executeTurnIfReady (GameState players) =
   fmap (GameState . fmap setUnready . doTrades) (traverse applyChoices players)
   where
     setUnready player = (Nothing, player{ ready = False })
-    applyChoices (Nothing, player) = Nothing
+    applyChoices (Nothing, _) = Nothing
     applyChoices (Just Choices{ takeAction, setTrade }, player) =
       Just (applyTradeInfo setTrade . playerProduce takeAction $ player)
     playerProduce Nothing player = player
