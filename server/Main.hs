@@ -35,7 +35,7 @@ main :: IO ()
 main = do
   [staticPath] <- getArgs
   state@ServerState{ broadcast } <- newServerState
-  forkIO . forever $ do
+  _ <- forkIO . forever $ do
     msg <- readChan broadcast
     print ("broadcast", msg)
   Warp.runEnv 45286 (waiApp state staticPath)
