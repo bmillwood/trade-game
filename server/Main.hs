@@ -114,7 +114,8 @@ loggedIn state@ServerState{ gameStore } conn username = do
       let newGame = removePlayer username game
       sendBroadcast state (Refresh newGame)
       return newGame
-  absurd (readDoesNotReturn <> neitherDoesWrite)
+  () <- absurd readDoesNotReturn
+  absurd neitherDoesWrite
 
 readThread :: ServerState -> WS.Connection -> String -> IO Void
 readThread state@ServerState{ gameStore } conn username = forever $ do
