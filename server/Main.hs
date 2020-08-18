@@ -1,22 +1,17 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 module Main where
 
 import Control.Concurrent.Async
 import Control.Concurrent
-import Control.Concurrent.Chan
-import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
 import Data.Void
 import GHC.Generics
 import System.Environment (getArgs)
-import System.IO.Error
 
 import qualified Data.Aeson as Aeson
-import Data.Aeson ((.:))
 import qualified Network.Wai as Wai
 import qualified Network.Wai.Application.Static as WaiStatic
 import qualified Network.Wai.Handler.Warp as Warp
@@ -86,8 +81,8 @@ handleConnection state@ServerState{ broadcast } conn = do
     Nothing -> return ()
     Just LoginRequest{ loginRequestName } ->
       WS.withPingThread conn 30 (print ("ping", loginRequestName)) $ do
-        broadcast <- dupChan broadcast
-        loggedIn state conn loginRequestName
+        clientBroadcast <- dupChan broadcast
+        loggedIn state{ broadcast = clientBroadcast } conn loginRequestName
     Just other -> putStrLn ("unexpected message: " ++ show other)
 
 sendView :: WS.Connection -> String -> GameState -> IO ()
@@ -112,8 +107,7 @@ loggedIn state@ServerState{ gameStore, broadcast } conn username = do
       let newGame = removePlayer username game
       writeChan broadcast (Refresh newGame)
       return newGame
-  absurd readDoesNotReturn
-  absurd neitherDoesWrite
+  absurd (readDoesNotReturn <> neitherDoesWrite)
 
 readThread :: ServerState -> WS.Connection -> String -> IO Void
 readThread ServerState{ gameStore, broadcast } conn username = forever $ do

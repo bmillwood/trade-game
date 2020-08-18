@@ -17,6 +17,7 @@ executable trade-game-server
   main-is:             Main.hs
   other-modules:       Game
   -- other-extensions:
+  ghc-options:         -Wall
   build-depends:
     aeson,
     async,
