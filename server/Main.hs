@@ -34,7 +34,10 @@ newServerState = ServerState <$> newMVar initGameState <*> newChan
 main :: IO ()
 main = do
   [staticPath] <- getArgs
-  state <- newServerState
+  state@ServerState{ broadcast } <- newServerState
+  forkIO . forever $ do
+    msg <- readChan broadcast
+    print ("broadcast", msg)
   Warp.runEnv 45286 (waiApp state staticPath)
 
 waiApp :: ServerState -> FilePath -> Wai.Application
@@ -91,12 +94,16 @@ sendView conn username game =
     Nothing -> return ()
     Just view -> sendToClient conn (UpdatePlayers view)
 
+sendBroadcast :: ServerState -> InternalBroadcast -> IO ()
+sendBroadcast ServerState{ broadcast } msg = do
+  writeChan broadcast msg
+
 loggedIn :: ServerState -> WS.Connection -> String -> IO ()
-loggedIn state@ServerState{ gameStore, broadcast } conn username = do
+loggedIn state@ServerState{ gameStore } conn username = do
   print ("logged in", username)
   modifyMVar_ gameStore $ \game -> do
     let newGame = addPlayer username game
-    writeChan broadcast (Refresh newGame)
+    sendBroadcast state (Refresh newGame)
     return newGame
   (readDoesNotReturn, neitherDoesWrite) <- concurrently
     (readThread state conn username)
@@ -105,12 +112,12 @@ loggedIn state@ServerState{ gameStore, broadcast } conn username = do
     modifyMVar_ gameStore $ \game -> do
       print ("disconnected", username)
       let newGame = removePlayer username game
-      writeChan broadcast (Refresh newGame)
+      sendBroadcast state (Refresh newGame)
       return newGame
   absurd (readDoesNotReturn <> neitherDoesWrite)
 
 readThread :: ServerState -> WS.Connection -> String -> IO Void
-readThread ServerState{ gameStore, broadcast } conn username = forever $ do
+readThread state@ServerState{ gameStore } conn username = forever $ do
   msg <- readFromClient conn
   case msg of
     Nothing -> return ()
@@ -121,11 +128,11 @@ readThread ServerState{ gameStore, broadcast } conn username = forever $ do
       case executeTurnIfReady game of
         Nothing -> do
           putStrLn "not all ready"
-          writeChan broadcast (Ready username)
+          sendBroadcast state (Ready username)
           putMVar gameStore game
         Just newGame -> do
           putStrLn "executing turn"
-          writeChan broadcast (Refresh newGame)
+          sendBroadcast state (Refresh newGame)
           putMVar gameStore newGame
 
 writeThread :: ServerState -> WS.Connection -> String -> IO Void
@@ -134,7 +141,9 @@ writeThread ServerState{ gameStore, broadcast } conn username = do
   forever $ do
     msg <- readChan broadcast
     case msg of
-      Ready playerName ->
+      Ready playerName -> do
+        print ("send ready", playerName, "to", username)
         sendToClient conn PlayerReady{ playerName, isReady = True }
-      Refresh newGame ->
+      Refresh newGame -> do
+        print ("refresh", username)
         sendView conn username newGame
