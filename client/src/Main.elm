@@ -33,23 +33,6 @@ init flags =
 view : Model -> Html Msg
 view = View.view
 
-fakeNewGame : { username : String } -> Model.Game
-fakeNewGame { username } =
-  { choices =
-      { action = Nothing
-      , trade = ByResource.both { giveMax = "-", getForEachGive = "-" }
-      }
-  , players =
-      { me =
-          { username = username
-          , ready = False
-          , resources = ByResource.both { held = 0, increment = 1, upgradeIn = 1 }
-          , trade = ByResource.both Nothing
-          }
-      , others = []
-      }
-  }
-
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   let
