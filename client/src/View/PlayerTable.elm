@@ -12,8 +12,8 @@ type alias Row a =
   { ready : Html a
   , username : Html a
   , resources : ByResource (Model.ResourceInfo (Html a))
-  , tradeMC : Html a
-  , tradeCM : Html a
+  , tradeMS : Html a
+  , tradeSM : Html a
   }
 
 viewRow : Row a -> Html a
@@ -30,7 +30,7 @@ viewRow { ready, username, resources, tradeMC, tradeCM } =
       ]
     inResources =
       case resources of
-        { mined, crafted } -> inResource mined ++ inResource crafted
+        { mined, smelted } -> inResource mined ++ inResource smelted
     afterResources =
       [ View.Style.td [] [ tradeMC ]
       , View.Style.td [] [ tradeCM ]
@@ -58,8 +58,8 @@ rowFor { username, ready, resources, trade } =
   { username = Html.text username
   , ready = if ready then Html.text "✓" else Html.text ""
   , resources = ByResource.map resource resources
-  , tradeMC = showTrade Resource.Crafted
-  , tradeCM = showTrade Resource.Mined
+  , tradeMS = showTrade Resource.Smelted
+  , tradeSM = showTrade Resource.Mined
   }
 
 view : List Model.PlayerInfo -> Html a
@@ -77,14 +77,14 @@ view players =
                     , increment = Html.text "M/t"
                     , upgradeIn = Html.text "U/M"
                     }
-                , crafted =
-                    { held = Html.text "C"
-                    , increment = Html.text "C/t"
-                    , upgradeIn = Html.text "U/C"
+                , smelted =
+                    { held = Html.text "S"
+                    , increment = Html.text "S/t"
+                    , upgradeIn = Html.text "U/S"
                     }
                 }
-            , tradeMC = Html.text "M/C"
-            , tradeCM = Html.text "C/M"
+            , tradeMC = Html.text "M/S"
+            , tradeCM = Html.text "S/M"
             }
         ]
     , View.Style.tbody

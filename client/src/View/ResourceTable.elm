@@ -27,8 +27,8 @@ view choices me =
       let
         (give, get) =
           case resource of
-            Resource.Mined -> ("C", "M")
-            Resource.Crafted -> ("M", "C")
+            Resource.Mined -> ("S", "M")
+            Resource.Smelted -> ("M", "S")
         params = ByResource.get resource choices.trade
         setParams newParams = { choices | trade = ByResource.set resource newParams choices.trade }
       in
@@ -50,7 +50,7 @@ view choices me =
         actionText =
           case resource of
             Resource.Mined -> "Mine"
-            Resource.Crafted -> "Craft"
+            Resource.Smelted -> "Smelt"
         inputId = "action:" ++ actionText
       in
       View.Style.td
@@ -98,6 +98,6 @@ view choices me =
     , View.Style.tbody
       []
       [ resourceRow Resource.Mined
-      , resourceRow Resource.Crafted
+      , resourceRow Resource.Smelted
       ]
     ]

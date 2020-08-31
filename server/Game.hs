@@ -21,7 +21,7 @@ import qualified Data.Aeson as Aeson
 
 data Resource
   = Mined
-  | Crafted
+  | Smelted
   deriving (Generic, Show)
 
 instance Aeson.FromJSON Resource
@@ -29,14 +29,14 @@ instance Aeson.FromJSON Resource
 data ByResource a =
   ByResource
     { mined :: a
-    , crafted :: a
+    , smelted :: a
     } deriving (Functor, Generic, Show)
 
 instance (Aeson.ToJSON a) => Aeson.ToJSON (ByResource a)
 instance (Aeson.FromJSON a) => Aeson.FromJSON (ByResource a)
 
 bothResources :: a -> ByResource a
-bothResources x = ByResource { mined = x, crafted = x }
+bothResources x = ByResource { mined = x, smelted = x }
 
 data ResourceInfo a =
   ResourceInfo
@@ -62,10 +62,10 @@ produceResource amount ResourceInfo{ held, increment, upgradeIn }
 produce :: (Num n, Ord n) => Resource -> ByResource (ResourceInfo n) -> ByResource (ResourceInfo n)
 produce Mined resources@ByResource{ mined = mined@ResourceInfo{ increment } } =
   resources{ mined = produceResource increment mined }
-produce Crafted ByResource{ mined, crafted } =
-  case ( mined, crafted ) of
+produce Smelted ByResource{ mined, smelted } =
+  case ( mined, smelted ) of
     ( ResourceInfo{ held = heldMined }, ResourceInfo{ increment } )
-      -> ByResource { mined = mined{ held = heldMined - amount }, crafted = produceResource amount crafted }
+      -> ByResource { mined = mined{ held = heldMined - amount }, smelted = produceResource amount smelted }
       where
         amount = min heldMined increment
 

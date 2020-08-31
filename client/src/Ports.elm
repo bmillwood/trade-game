@@ -49,13 +49,13 @@ encodeResource : Resource -> Json.Encode.Value
 encodeResource resource =
   case resource of
     Resource.Mined -> Json.Encode.string "Mined"
-    Resource.Crafted -> Json.Encode.string "Crafted"
+    Resource.Smelted -> Json.Encode.string "Smelted"
 
 encodeByResource : (a -> Json.Encode.Value) -> ByResource a -> Json.Encode.Value
-encodeByResource encode { mined, crafted } =
+encodeByResource encode { mined, smelted } =
   Json.Encode.object
     [ ( "mined", encode mined )
-    , ( "crafted", encode crafted )
+    , ( "smelted", encode smelted )
     ]
 
 encodeTradeParam : (qty -> Json.Encode.Value) -> Model.TradeParam qty -> Json.Encode.Value
@@ -128,7 +128,7 @@ byResource decoder =
   Json.Decode.map2
     ByResource
     (Json.Decode.field "mined" decoder)
-    (Json.Decode.field "crafted" decoder)
+    (Json.Decode.field "smelted" decoder)
 
 tradeParam : Json.Decode.Decoder a -> Json.Decode.Decoder (Model.TradeParam a)
 tradeParam decoder =

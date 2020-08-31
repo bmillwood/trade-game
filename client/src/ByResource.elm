@@ -2,22 +2,22 @@ module ByResource exposing (..)
 
 import Resource exposing (Resource)
 
-type alias ByResource a = { mined : a, crafted : a }
+type alias ByResource a = { mined : a, smelted : a }
 
 get : Resource -> ByResource a -> a
 get r =
   case r of
     Resource.Mined -> .mined
-    Resource.Crafted -> .crafted
+    Resource.Smelted -> .smelted
 
 set : Resource -> a -> ByResource a -> ByResource a
 set r x b =
   case r of
     Resource.Mined -> { b | mined = x }
-    Resource.Crafted -> { b | crafted = x }
+    Resource.Smelted -> { b | smelted = x }
 
 map : (a -> b) -> ByResource a -> ByResource b
-map f b = { mined = f b.mined, crafted = f b.crafted }
+map f b = { mined = f b.mined, smelted = f b.smelted }
 
 both : a -> ByResource a
-both x = { mined = x, crafted = x }
+both x = { mined = x, smelted = x }
