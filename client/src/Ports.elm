@@ -137,13 +137,20 @@ tradeParam decoder =
     (Json.Decode.field "giveMax" decoder)
     (Json.Decode.field "getForEachGive" decoder)
 
+rational : Json.Decode.Decoder Float
+rational =
+  Json.Decode.map2
+    (\num den -> num / den)
+    (Json.Decode.field "numerator" Json.Decode.float)
+    (Json.Decode.field "denominator" Json.Decode.float)
+
 resourceInfo : Json.Decode.Decoder (Model.ResourceInfo Float)
 resourceInfo =
   Json.Decode.map3
     Model.ResourceInfo
-    (Json.Decode.field "held" Json.Decode.float)
-    (Json.Decode.field "increment" Json.Decode.float)
-    (Json.Decode.field "upgradeIn" Json.Decode.float)
+    (Json.Decode.field "held" rational)
+    (Json.Decode.field "increment" rational)
+    (Json.Decode.field "upgradeIn" rational)
 
 playerInfo : Json.Decode.Decoder Model.PlayerInfo
 playerInfo =
@@ -152,7 +159,7 @@ playerInfo =
     (Json.Decode.field "username" Json.Decode.string)
     (Json.Decode.field "ready" Json.Decode.bool)
     (Json.Decode.field "resources" (byResource resourceInfo))
-    (Json.Decode.field "trade" (byResource (Json.Decode.nullable (tradeParam Json.Decode.float))))
+    (Json.Decode.field "trade" (byResource (Json.Decode.nullable (tradeParam rational))))
 
 players : Json.Decode.Decoder Model.Players
 players =

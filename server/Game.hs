@@ -92,8 +92,8 @@ data PlayerInfo =
   PlayerInfo
     { username :: String
     , ready :: Bool
-    , resources :: ByResource (ResourceInfo Float)
-    , trade :: ByResource (Maybe (TradeParam Float))
+    , resources :: ByResource (ResourceInfo Rational)
+    , trade :: ByResource (Maybe (TradeParam Rational))
     } deriving (Generic, Show)
 
 instance Aeson.ToJSON PlayerInfo
