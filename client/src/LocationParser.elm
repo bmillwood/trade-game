@@ -43,14 +43,7 @@ parseLocationProperly flags =
 parseLocationWorkaround : Json.Decode.Value -> { error : Maybe String, endpoint : String, username : String, autoLogin : Bool }
 parseLocationWorkaround flags =
   let
-    parsedUrl =
-      Json.Decode.decodeValue (Json.Decode.at ["location", "search"] Json.Decode.string) flags
-      |> Result.mapError Json.Decode.errorToString
-  in
-  case parsedUrl of
-    Err msg ->
-      { defaults | error = Just msg }
-    Ok search ->
+    ofParts host pathname search =
       let
         pieces = String.split "&" (String.dropLeft 1 search)
         getValue key kv =
@@ -64,6 +57,22 @@ parseLocationWorkaround flags =
       { defaults
       | username = Maybe.withDefault defaults.username (lookup "username")
       , autoLogin = List.member "autoLogin=true" pieces
+      , endpoint = "ws://" ++ host ++ pathname
       }
+    decoder =
+      Json.Decode.field "location"
+      <| Json.Decode.map3 ofParts
+          (Json.Decode.field "host" Json.Decode.string)
+          (Json.Decode.field "pathname" Json.Decode.string)
+          (Json.Decode.field "search" Json.Decode.string)
+    parseResult =
+      Json.Decode.decodeValue decoder flags
+      |> Result.mapError Json.Decode.errorToString
+  in
+  case parseResult of
+    Err msg ->
+      { defaults | error = Just msg }
+    Ok result ->
+      result
 
 parseLocation = parseLocationWorkaround
