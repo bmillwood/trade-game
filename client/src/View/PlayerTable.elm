@@ -17,7 +17,7 @@ type alias Row a =
   }
 
 viewRow : Row a -> Html a
-viewRow { ready, username, resources, tradeMC, tradeCM } =
+viewRow { ready, username, resources, tradeMS, tradeSM } =
   let
     beforeResources =
       [ View.Style.td [] [ ready ]
@@ -32,8 +32,8 @@ viewRow { ready, username, resources, tradeMC, tradeCM } =
       case resources of
         { mined, smelted } -> inResource mined ++ inResource smelted
     afterResources =
-      [ View.Style.td [] [ tradeMC ]
-      , View.Style.td [] [ tradeCM ]
+      [ View.Style.td [] [ tradeMS ]
+      , View.Style.td [] [ tradeSM ]
       ]
   in
   Html.tr
@@ -83,8 +83,8 @@ view players =
                     , upgradeIn = Html.text "U/S"
                     }
                 }
-            , tradeMC = Html.text "M/S"
-            , tradeCM = Html.text "S/M"
+            , tradeMS = Html.text "M/S"
+            , tradeSM = Html.text "S/M"
             }
         ]
     , View.Style.tbody
