@@ -14,8 +14,10 @@ module Game
   , viewForPlayer
   ) where
 
+import Control.Applicative
 import qualified Data.Map as Map
 import GHC.Generics
+import Text.Read (readMaybe)
 
 import qualified Data.Aeson as Aeson
 
@@ -121,7 +123,10 @@ removePlayer username (GameState players) =
   GameState (Map.delete username players)
 
 applyTradeInfo :: ByResource (TradeParam String) -> PlayerInfo -> PlayerInfo
-applyTradeInfo _ player = player
+applyTradeInfo tradeInfo player = player{ trade = fmap parseTradeParam tradeInfo }
+  where
+    parseTradeParam TradeParam{ giveMax, getForEachGive } =
+      liftA2 TradeParam (readMaybe giveMax) (readMaybe getForEachGive)
 
 doTrades :: Map.Map String PlayerInfo -> Map.Map String PlayerInfo
 doTrades players = players
