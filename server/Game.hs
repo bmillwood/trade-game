@@ -15,11 +15,16 @@ module Game
   ) where
 
 import Control.Applicative
+import Control.Lens
+import Control.Monad
+import Data.Maybe (listToMaybe)
 import qualified Data.Map as Map
 import GHC.Generics
-import Text.Read (readMaybe)
+import Numeric (readFloat)
 
 import qualified Data.Aeson as Aeson
+
+import Trade
 
 data Resource
   = Mined
@@ -39,6 +44,10 @@ instance (Aeson.FromJSON a) => Aeson.FromJSON (ByResource a)
 
 bothResources :: a -> ByResource a
 bothResources x = ByResource { mined = x, smelted = x }
+
+byResource :: (Functor f) => Resource -> (a -> f a) -> ByResource a -> f (ByResource a)
+byResource Mined   afa by = fmap (\a -> by{ mined   = a }) (afa (mined   by))
+byResource Smelted afa by = fmap (\a -> by{ smelted = a }) (afa (smelted by))
 
 data ResourceInfo a =
   ResourceInfo
@@ -70,15 +79,6 @@ produce Smelted ByResource{ mined, smelted } =
       -> ByResource { mined = mined{ held = heldMined - amount }, smelted = produceResource amount smelted }
       where
         amount = min heldMined increment
-
-data TradeParam a =
-  TradeParam
-    { giveMax :: a
-    , getForEachGive :: a
-    } deriving (Generic, Show)
-
-instance (Aeson.ToJSON a) => Aeson.ToJSON (TradeParam a)
-instance (Aeson.FromJSON a) => Aeson.FromJSON (TradeParam a)
 
 data Choices =
   Choices
@@ -126,10 +126,41 @@ applyTradeInfo :: ByResource (TradeParam String) -> PlayerInfo -> PlayerInfo
 applyTradeInfo tradeInfo player = player{ trade = fmap parseTradeParam tradeInfo }
   where
     parseTradeParam TradeParam{ giveMax, getForEachGive } =
-      liftA2 TradeParam (readMaybe giveMax) (readMaybe getForEachGive)
+      liftA2 TradeParam (readPositive giveMax) (readPositive getForEachGive)
+    readPositive str = do
+      result <- fmap fst . listToMaybe $ readFloat str
+      guard (result > 0)
+      return result
+
+applyAuctionResult :: AuctionResult String -> Map.Map String PlayerInfo -> Map.Map String PlayerInfo
+applyAuctionResult AuctionResult{ worstLeftPrice = _, worstRightPrice, leftsTraded, rightsTraded } players =
+  foldr (applyTrades Mined) (foldr (applyTrades Smelted) players rightsTraded) leftsTraded
+  where
+    other Mined = Smelted
+    other Smelted = Mined
+    applyTrades give (who, qty) =
+      Map.adjust
+        (applyTrade give TradeParam{ giveMax = qty, getForEachGive = prices ^. byResource give })
+        who
+    applyTrade give TradeParam{ giveMax, getForEachGive } info@PlayerInfo{ resources } =
+      info{
+        resources =
+          resources
+          & byResource give %~ addResource (negate giveMax)
+          & byResource (other give) %~ addResource (getForEachGive * giveMax)
+        }
+    addResource qty resource@ResourceInfo{ held } = resource{ held = held + qty }
+    prices = ByResource{ mined = recip worstRightPrice, smelted = worstRightPrice }
 
 doTrades :: Map.Map String PlayerInfo -> Map.Map String PlayerInfo
-doTrades players = players
+doTrades players =
+  maybe id applyAuctionResult
+    (runAuction (paramsByResource Mined) (paramsByResource Smelted))
+    players
+  where
+    paramsByResource resource =
+      Map.mapMaybe (\PlayerInfo{ trade } -> trade ^. byResource resource) players
+      & Map.toList
 
 executeTurnIfReady :: GameState -> Maybe GameState
 executeTurnIfReady (GameState players) =

@@ -15,7 +15,7 @@ maintainer:          thebenmachine+git@gmail.com
 
 executable trade-game-server
   main-is:             Main.hs
-  other-modules:       Game
+  other-modules:       Game Trade
   -- other-extensions:
   ghc-options:         -Wall
   build-depends:
@@ -24,6 +24,7 @@ executable trade-game-server
     base,
     bytestring,
     containers,
+    lens,
     wai,
     wai-app-static,
     wai-websockets,
