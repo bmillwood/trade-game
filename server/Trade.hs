@@ -71,27 +71,60 @@ splitMatchingSizeLevels ((lpx, ls) : lss) ((rpx, rs) : rss) =
 
 data AuctionResult u =
   AuctionResult
-    { worstLeftPrice :: Rational
-    , worstRightPrice :: Rational
+    { price :: Either Rational Rational
     , leftsTraded :: NonEmpty (u, Rational)
     , rightsTraded :: NonEmpty (u, Rational)
     } deriving (Generic, Show)
+
+data AuctionInProgress u =
+  AuctionInProgress
+    { worstLeftPrice :: Rational
+    , worstRightPrice :: Rational
+    , leftsTradedSoFar :: NonEmpty (u, Rational)
+    , rightsTradedSoFar :: NonEmpty (u, Rational)
+    } deriving (Generic, Show)
+
+addMatchingSizeMostAggLevel
+  :: (PriceLevel u, PriceLevel u)
+  -> Maybe (AuctionInProgress u)
+  -> Maybe (AuctionInProgress u)
+addMatchingSizeMostAggLevel ((lpx, ls), (rpx, rs)) auctionInProgress
+  | lpx * rpx > 1 = Nothing
+  | otherwise =
+    Just $ AuctionInProgress
+      { worstLeftPrice = maybe lpx worstLeftPrice auctionInProgress
+      , worstRightPrice = maybe rpx worstRightPrice auctionInProgress
+      , leftsTradedSoFar = maybe ls ((ls <>) . leftsTradedSoFar) auctionInProgress
+      , rightsTradedSoFar = maybe rs ((rs <>) . rightsTradedSoFar) auctionInProgress
+      }
+
+finishAuction :: Maybe (Either a b) -> AuctionInProgress u -> AuctionResult u
+finishAuction
+  extraDemand
+  AuctionInProgress
+    { worstLeftPrice
+    , worstRightPrice
+    , leftsTradedSoFar
+    , rightsTradedSoFar
+    }
+  =
+  AuctionResult { price, leftsTraded = leftsTradedSoFar, rightsTraded = rightsTradedSoFar }
+  where
+    price =
+      case extraDemand of
+        Nothing -> Left worstLeftPrice
+        Just (Left _) -> Right worstRightPrice
+        Just (Right _) -> Left worstLeftPrice
 
 ofMatchingSizeAggLevels
   :: ( [(PriceLevel u, PriceLevel u)]
      , Maybe (Either (NonEmpty (PriceLevel u)) (NonEmpty (PriceLevel u)))
      )
   -> Maybe (AuctionResult u)
-ofMatchingSizeAggLevels ([], _) = Nothing
-ofMatchingSizeAggLevels (((lpx, ls), (rpx, rs)) : _vs, _extraDemand)
-  | lpx * rpx > 1 = Nothing
-  | otherwise =
-    Just $ AuctionResult
-      { worstLeftPrice = lpx
-      , worstRightPrice = rpx
-      , leftsTraded = ls
-      , rightsTraded = rs
-      }
+ofMatchingSizeAggLevels (msAggLevels, extraDemand)
+  =
+  fmap (finishAuction extraDemand)
+    (foldr addMatchingSizeMostAggLevel Nothing msAggLevels)
 
 runAuction
   :: [(u, TradeParam Rational)]

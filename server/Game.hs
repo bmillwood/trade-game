@@ -133,7 +133,7 @@ applyTradeInfo tradeInfo player = player{ trade = fmap parseTradeParam tradeInfo
       return result
 
 applyAuctionResult :: AuctionResult String -> Map.Map String PlayerInfo -> Map.Map String PlayerInfo
-applyAuctionResult AuctionResult{ worstLeftPrice = _, worstRightPrice, leftsTraded, rightsTraded } players =
+applyAuctionResult AuctionResult{ price, leftsTraded, rightsTraded } players =
   foldr (applyTrades Mined) (foldr (applyTrades Smelted) players rightsTraded) leftsTraded
   where
     other Mined = Smelted
@@ -150,7 +150,10 @@ applyAuctionResult AuctionResult{ worstLeftPrice = _, worstRightPrice, leftsTrad
           & byResource (other give) %~ addResource (getForEachGive * giveMax)
         }
     addResource qty resource@ResourceInfo{ held } = resource{ held = held + qty }
-    prices = ByResource{ mined = recip worstRightPrice, smelted = worstRightPrice }
+    prices =
+      case price of
+        Left px -> ByResource{ mined = px, smelted = recip px }
+        Right px -> ByResource{ mined = recip px, smelted = px }
 
 doTrades :: Map.Map String PlayerInfo -> Map.Map String PlayerInfo
 doTrades players =
