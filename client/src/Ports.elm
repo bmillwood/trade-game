@@ -5,10 +5,12 @@ import Json.Decode
 import Json.Encode
 import Maybe
 
+import ByDir exposing (ByDir)
 import ByResource exposing (ByResource)
 import Model
 import Msg exposing (Msg)
 import Resource exposing (Resource)
+import Trade exposing (Order)
 
 port sendToJS : Json.Encode.Value -> Cmd msg
 port receiveFromJS : (Json.Decode.Value -> msg) -> Sub msg
@@ -58,18 +60,27 @@ encodeByResource encode { mined, smelted } =
     , ( "smelted", encode smelted )
     ]
 
-encodeTradeParam : (qty -> Json.Encode.Value) -> Model.TradeParam qty -> Json.Encode.Value
-encodeTradeParam encode { giveMax, getForEachGive } =
+encodeByDir : (a -> Json.Encode.Value) -> ByDir a -> Json.Encode.Value
+encodeByDir encode { buy, sell } =
   Json.Encode.object
-    [ ( "giveMax", encode giveMax )
-    , ( "getForEachGive", encode getForEachGive )
+    [ ( "buy", encode buy )
+    , ( "sell", encode sell )
+    ]
+
+encodeOrder : (px -> Json.Encode.Value) -> (qty -> Json.Encode.Value) -> Order px qty -> Json.Encode.Value
+encodeOrder encodePx encodeQty { price, size } =
+  Json.Encode.object
+    [ ( "orderPrice", encodePx price )
+    , ( "orderSize", encodeQty size )
     ]
 
 sendChoices : Model.Choices -> Cmd msg
-sendChoices { action, trade } =
+sendChoices { action, tradeMined } =
   Json.Encode.object
     [ ( "takeAction", encodeNullable encodeResource action )
-    , ( "setTrade", encodeByResource (encodeTradeParam Json.Encode.string) trade )
+    , ( "setTradeMined"
+      , encodeByDir (encodeOrder Json.Encode.string Json.Encode.string) tradeMined
+      )
     ]
   |> contentsWithTag "MadeChoices"
   |> send
@@ -130,12 +141,12 @@ byResource decoder =
     (Json.Decode.field "mined" decoder)
     (Json.Decode.field "smelted" decoder)
 
-tradeParam : Json.Decode.Decoder a -> Json.Decode.Decoder (Model.TradeParam a)
-tradeParam decoder =
+byDir : Json.Decode.Decoder a -> Json.Decode.Decoder (ByDir a)
+byDir decoder =
   Json.Decode.map2
-    Model.TradeParam
-    (Json.Decode.field "giveMax" decoder)
-    (Json.Decode.field "getForEachGive" decoder)
+    ByDir
+    (Json.Decode.field "buy" decoder)
+    (Json.Decode.field "sell" decoder)
 
 rational : Json.Decode.Decoder Float
 rational =
@@ -152,6 +163,13 @@ resourceInfo =
     (Json.Decode.field "increment" rational)
     (Json.Decode.field "upgradeIn" rational)
 
+decodeOrder : Json.Decode.Decoder a -> Json.Decode.Decoder b -> Json.Decode.Decoder (Order a b)
+decodeOrder decodePrice decodeSize =
+  Json.Decode.map2
+    Order
+    (Json.Decode.field "orderPrice" decodePrice)
+    (Json.Decode.field "orderSize" decodeSize)
+
 playerInfo : Json.Decode.Decoder Model.PlayerInfo
 playerInfo =
   Json.Decode.map4
@@ -159,7 +177,7 @@ playerInfo =
     (Json.Decode.field "username" Json.Decode.string)
     (Json.Decode.field "ready" Json.Decode.bool)
     (Json.Decode.field "resources" (byResource resourceInfo))
-    (Json.Decode.field "trade" (byResource (Json.Decode.nullable (tradeParam rational))))
+    (Json.Decode.field "trade" (byDir (Json.Decode.nullable (decodeOrder rational rational))))
 
 players : Json.Decode.Decoder Model.Players
 players =

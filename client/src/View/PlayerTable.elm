@@ -3,21 +3,22 @@ module View.PlayerTable exposing (view)
 import Dict exposing (Dict)
 import Html.Styled as Html exposing (Html)
 
+import ByDir exposing (ByDir)
 import ByResource exposing (ByResource)
 import Resource
 import Model
+import Trade
 import View.Style
 
 type alias Row a =
   { ready : Html a
   , username : Html a
   , resources : ByResource (Model.ResourceInfo (Html a))
-  , tradeMS : Html a
-  , tradeSM : Html a
+  , trade : ByDir (Html a)
   }
 
 viewRow : Row a -> Html a
-viewRow { ready, username, resources, tradeMS, tradeSM } =
+viewRow { ready, username, resources, trade } =
   let
     beforeResources =
       [ View.Style.td [] [ ready ]
@@ -32,8 +33,8 @@ viewRow { ready, username, resources, tradeMS, tradeSM } =
       case resources of
         { mined, smelted } -> inResource mined ++ inResource smelted
     afterResources =
-      [ View.Style.td [] [ tradeMS ]
-      , View.Style.td [] [ tradeSM ]
+      [ View.Style.td [] [ trade.buy ]
+      , View.Style.td [] [ trade.sell ]
       ]
   in
   Html.tr
@@ -49,17 +50,16 @@ rowFor { username, ready, resources, trade } =
       , increment = qtyText increment
       , upgradeIn = qtyText upgradeIn
       }
-    showTrade give =
-      case ByResource.get give trade of
-        Nothing -> Html.text "-"
-        Just { giveMax, getForEachGive } ->
-          Html.text (String.fromFloat getForEachGive ++ " (" ++ String.fromFloat giveMax ++ ")")
+    showTrade maybeTrade =
+      case maybeTrade of
+        Nothing -> Html.text ""
+        Just { price, size } ->
+          Html.text (String.fromFloat size ++ " @ " ++ String.fromFloat price ++ "S")
   in
   { username = Html.text username
   , ready = if ready then Html.text "✓" else Html.text ""
   , resources = ByResource.map resource resources
-  , tradeMS = showTrade Resource.Smelted
-  , tradeSM = showTrade Resource.Mined
+  , trade = ByDir.map showTrade trade
   }
 
 view : List Model.PlayerInfo -> Html a
@@ -83,8 +83,10 @@ view players =
                     , upgradeIn = Html.text "U/S"
                     }
                 }
-            , tradeMS = Html.text "M/S"
-            , tradeSM = Html.text "S/M"
+            , trade =
+                { buy = Html.text "Buy M"
+                , sell = Html.text "Sell M"
+                }
             }
         ]
     , View.Style.tbody

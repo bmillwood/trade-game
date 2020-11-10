@@ -42,12 +42,16 @@ data ByResource a =
 instance (Aeson.ToJSON a) => Aeson.ToJSON (ByResource a)
 instance (Aeson.FromJSON a) => Aeson.FromJSON (ByResource a)
 
-bothResources :: a -> ByResource a
-bothResources x = ByResource { mined = x, smelted = x }
+createByResource :: (Resource -> a) -> ByResource a
+createByResource f = ByResource { mined = f Mined, smelted = f Smelted }
 
 byResource :: (Functor f) => Resource -> (a -> f a) -> ByResource a -> f (ByResource a)
 byResource Mined   afa by = fmap (\a -> by{ mined   = a }) (afa (mined   by))
 byResource Smelted afa by = fmap (\a -> by{ smelted = a }) (afa (smelted by))
+
+instance Applicative ByResource where
+  pure x = ByResource{ mined = x, smelted = x }
+  byf <*> byx = createByResource $ \r -> (byf ^. byResource r) (byx ^. byResource r)
 
 data ResourceInfo a =
   ResourceInfo
@@ -83,7 +87,7 @@ produce Smelted ByResource{ mined, smelted } =
 data Choices =
   Choices
     { takeAction :: Maybe Resource
-    , setTrade :: ByResource (TradeParam String)
+    , setTradeMined :: ByDir (Order String String)
     } deriving (Generic, Show)
 
 instance Aeson.FromJSON Choices
@@ -93,7 +97,7 @@ data PlayerInfo =
     { username :: String
     , ready :: Bool
     , resources :: ByResource (ResourceInfo Rational)
-    , trade :: ByResource (Maybe (TradeParam Rational))
+    , trade :: ByDir (Maybe (Order Price Qty))
     } deriving (Generic, Show)
 
 instance Aeson.ToJSON PlayerInfo
@@ -110,8 +114,8 @@ newPlayer username =
   PlayerInfo
     { username
     , ready = False
-    , resources = bothResources ResourceInfo{ held = 0, increment = 1, upgradeIn = upgradeInFor 1 }
-    , trade = bothResources Nothing
+    , resources = pure ResourceInfo{ held = 0, increment = 1, upgradeIn = upgradeInFor 1 }
+    , trade = pure Nothing
     }
 
 addPlayer :: String -> GameState -> GameState
@@ -122,48 +126,44 @@ removePlayer :: String -> GameState -> GameState
 removePlayer username (GameState players) =
   GameState (Map.delete username players)
 
-applyTradeInfo :: ByResource (TradeParam String) -> PlayerInfo -> PlayerInfo
-applyTradeInfo tradeInfo player = player{ trade = fmap parseTradeParam tradeInfo }
+applyOrders :: ByDir (Order String String) -> PlayerInfo -> PlayerInfo
+applyOrders orders player = player{ trade = fmap parseOrder orders }
   where
-    parseTradeParam TradeParam{ giveMax, getForEachGive } =
-      liftA2 TradeParam (readPositive giveMax) (readPositive getForEachGive)
+    parseOrder Order{ orderPrice, orderSize } =
+      liftA2 Order (readPositive orderPrice) (readPositive orderSize)
     readPositive str = do
       result <- fmap fst . listToMaybe $ readFloat str
       guard (result > 0)
       return result
 
 applyAuctionResult :: AuctionResult String -> Map.Map String PlayerInfo -> Map.Map String PlayerInfo
-applyAuctionResult AuctionResult{ price, leftsTraded, rightsTraded } players =
-  foldr (applyTrades Mined) (foldr (applyTrades Smelted) players rightsTraded) leftsTraded
+applyAuctionResult AuctionResult{ price, whoTraded } players =
+  foldr (applyTrades Buy) (foldr (applyTrades Sell) players (sell whoTraded)) (buy whoTraded)
   where
-    other Mined = Smelted
-    other Smelted = Mined
-    applyTrades give (who, qty) =
+    applyTrades dir (who, qty) =
       Map.adjust
-        (applyTrade give TradeParam{ giveMax = qty, getForEachGive = prices ^. byResource give })
+        (applyTrade dir qty)
         who
-    applyTrade give TradeParam{ giveMax, getForEachGive } info@PlayerInfo{ resources } =
-      info{
-        resources =
-          resources
-          & byResource give %~ addResource (negate giveMax)
-          & byResource (other give) %~ addResource (getForEachGive * giveMax)
+    dirSign Buy = id
+    dirSign Sell = negate
+    applyTrade dir qty info@PlayerInfo{ resources } =
+      info
+        { resources =
+            resources
+            & byResource Mined %~ addResource (dirSign dir qty)
+            & byResource Smelted %~ addResource (qty * negate (dirSign dir price))
         }
     addResource qty resource@ResourceInfo{ held } = resource{ held = held + qty }
-    prices =
-      case price of
-        Left px -> ByResource{ mined = px, smelted = recip px }
-        Right px -> ByResource{ mined = recip px, smelted = px }
 
 doTrades :: Map.Map String PlayerInfo -> Map.Map String PlayerInfo
 doTrades players =
   maybe id applyAuctionResult
-    (runAuction (paramsByResource Mined) (paramsByResource Smelted))
+    (runAuction orders)
     players
   where
-    paramsByResource resource =
-      Map.mapMaybe (\PlayerInfo{ trade } -> trade ^. byResource resource) players
-      & Map.toList
+    orders =
+      createByDir $ \dir ->
+        Map.mapMaybe (\PlayerInfo{ trade } -> trade ^. byDir dir) players & Map.toList
 
 executeTurnIfReady :: GameState -> Maybe GameState
 executeTurnIfReady (GameState players) =
@@ -171,8 +171,8 @@ executeTurnIfReady (GameState players) =
   where
     setUnready player = (Nothing, player{ ready = False })
     applyChoices (Nothing, _) = Nothing
-    applyChoices (Just Choices{ takeAction, setTrade }, player) =
-      Just (applyTradeInfo setTrade . playerProduce takeAction $ player)
+    applyChoices (Just Choices{ takeAction, setTradeMined }, player) =
+      Just (applyOrders setTradeMined . playerProduce takeAction $ player)
     playerProduce Nothing player = player
     playerProduce (Just resource) player@PlayerInfo{ resources } = player{ resources = produce resource resources }
 
