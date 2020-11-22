@@ -1,55 +1,17 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NamedFieldPuns #-}
 module Trade where
 
 import Control.Applicative
 import Control.Arrow
+import Control.Lens
 import Data.Function (on)
 import Data.List
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.List.NonEmpty (NonEmpty((:|)))
 import GHC.Generics
 
-import Control.Lens
-import qualified Data.Aeson as Aeson
-
-data Dir
-  = Buy
-  | Sell
-  deriving (Generic, Show)
-
-data ByDir a =
-  ByDir
-    { buy :: a
-    , sell :: a
-    } deriving (Functor, Generic, Show)
-
-byDir :: (Functor f) => Dir -> (a -> f a) -> ByDir a -> f (ByDir a)
-byDir Buy  afa by = fmap (\a -> by{ buy  = a }) (afa (buy  by))
-byDir Sell afa by = fmap (\a -> by{ sell = a }) (afa (sell by))
-
-createByDir :: (Dir -> a) -> ByDir a
-createByDir f = ByDir { buy = f Buy, sell = f Sell }
-
-instance Applicative ByDir where
-  pure = createByDir . const
-  byf <*> byx = createByDir $ \dir -> (byf ^. byDir dir) (byx ^. byDir dir)
-
-instance (Aeson.ToJSON a) => Aeson.ToJSON (ByDir a)
-instance (Aeson.FromJSON a) => Aeson.FromJSON (ByDir a)
-
-type Price = Rational
-type Qty = Rational
-
-data Order px qty =
-  Order
-    { orderPrice :: px
-    , orderSize :: qty
-    } deriving (Generic, Show)
-
-instance (Aeson.ToJSON a, Aeson.ToJSON b) => Aeson.ToJSON (Order a b)
-instance (Aeson.FromJSON a, Aeson.FromJSON b) => Aeson.FromJSON (Order a b)
+import Protocol
 
 type PriceLevel u = (Price, NonEmpty (u, Qty))
 

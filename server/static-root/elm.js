@@ -1,1 +1,1 @@
-../../client/elm.js
+../../web-client/elm.js

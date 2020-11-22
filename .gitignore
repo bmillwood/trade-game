@@ -1,3 +1,4 @@
-client/elm-stuff
-client/elm.js
-server/dist-newstyle
+cabal.project.local
+dist-newstyle
+web-client/elm-stuff
+web-client/elm.js

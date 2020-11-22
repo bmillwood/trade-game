@@ -1,1 +1,1 @@
-../../client/driver.js
+../../web-client/driver.js

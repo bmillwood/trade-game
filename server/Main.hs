@@ -8,7 +8,6 @@ import Control.Concurrent
 import Control.Exception
 import Control.Monad
 import Data.Void
-import GHC.Generics
 import System.Environment (getArgs)
 
 import qualified Data.Aeson as Aeson
@@ -19,6 +18,7 @@ import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.WebSockets as WS
 
 import Game
+import Protocol
 
 data InternalBroadcast
   = Ready String
@@ -49,20 +49,6 @@ staticApp staticPath = WaiStatic.staticApp (WaiStatic.defaultFileServerSettings 
 
 wsApp :: ServerState -> WS.ServerApp
 wsApp state = handleConnection state <=< WS.acceptRequest
-
-data FromClient
-  = LoginRequest { loginRequestName :: String }
-  | MadeChoices Choices
-  deriving (Generic, Show)
-
-instance Aeson.FromJSON FromClient
-
-data ToClient
-  = UpdatePlayers PlayerView
-  | PlayerReady { playerName :: String, isReady :: Bool }
-  deriving (Generic, Show)
-
-instance Aeson.ToJSON ToClient
 
 sendToClient :: WS.Connection -> ToClient -> IO ()
 sendToClient conn msg = do

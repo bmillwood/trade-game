@@ -19,48 +19,10 @@ import Control.Lens
 import Control.Monad
 import Data.Maybe (listToMaybe)
 import qualified Data.Map as Map
-import GHC.Generics
 import Numeric (readFloat)
 
-import qualified Data.Aeson as Aeson
-
+import Protocol
 import Trade
-
-data Resource
-  = Mined
-  | Smelted
-  deriving (Generic, Show)
-
-instance Aeson.FromJSON Resource
-
-data ByResource a =
-  ByResource
-    { mined :: a
-    , smelted :: a
-    } deriving (Functor, Generic, Show)
-
-instance (Aeson.ToJSON a) => Aeson.ToJSON (ByResource a)
-instance (Aeson.FromJSON a) => Aeson.FromJSON (ByResource a)
-
-createByResource :: (Resource -> a) -> ByResource a
-createByResource f = ByResource { mined = f Mined, smelted = f Smelted }
-
-byResource :: (Functor f) => Resource -> (a -> f a) -> ByResource a -> f (ByResource a)
-byResource Mined   afa by = fmap (\a -> by{ mined   = a }) (afa (mined   by))
-byResource Smelted afa by = fmap (\a -> by{ smelted = a }) (afa (smelted by))
-
-instance Applicative ByResource where
-  pure x = ByResource{ mined = x, smelted = x }
-  byf <*> byx = createByResource $ \r -> (byf ^. byResource r) (byx ^. byResource r)
-
-data ResourceInfo a =
-  ResourceInfo
-    { held :: a
-    , increment :: a
-    , upgradeIn :: a
-    } deriving (Generic, Show)
-
-instance (Aeson.ToJSON a) => Aeson.ToJSON (ResourceInfo a)
 
 upgradeInFor :: (Num n) => n -> n
 upgradeInFor n = 5 * n * n
@@ -83,24 +45,6 @@ produce Smelted ByResource{ mined, smelted } =
       -> ByResource { mined = mined{ held = heldMined - amount }, smelted = produceResource amount smelted }
       where
         amount = min heldMined increment
-
-data Choices =
-  Choices
-    { takeAction :: Maybe Resource
-    , setTradeMined :: ByDir (Order String String)
-    } deriving (Generic, Show)
-
-instance Aeson.FromJSON Choices
-
-data PlayerInfo =
-  PlayerInfo
-    { username :: String
-    , ready :: Bool
-    , resources :: ByResource (ResourceInfo Rational)
-    , trade :: ByDir (Maybe (Order Price Qty))
-    } deriving (Generic, Show)
-
-instance Aeson.ToJSON PlayerInfo
 
 newtype GameState
   = GameState (Map.Map String (Maybe Choices, PlayerInfo))
@@ -181,14 +125,6 @@ setChoices usernameToSet choices (GameState players) =
   GameState (Map.adjust updatePlayer usernameToSet players)
   where
     updatePlayer (_, info) = (Just choices, info{ ready = True })
-
-data PlayerView =
-  PlayerView
-    { me :: PlayerInfo
-    , others :: [PlayerInfo]
-    } deriving (Generic, Show)
-
-instance Aeson.ToJSON PlayerView
 
 viewForPlayer :: GameState -> String -> Maybe PlayerView
 viewForPlayer (GameState players) username =

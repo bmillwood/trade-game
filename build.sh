@@ -2,7 +2,7 @@
 set -ux
 
 function waitForSource() {
-  inotifywait --quiet -e modify -e delete .
+  inotifywait --quiet -e modify -e delete protocol server
 }
 
 killGrandchild() {
@@ -13,7 +13,7 @@ while sleep 1
 do
   if cabal build
   then
-    cabal run trade-game-server -- static-root &
+    cabal run trade-game-server -- server/static-root &
     waitForSource
     jobs -x killGrandchild %%
     wait

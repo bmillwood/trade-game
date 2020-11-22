@@ -1,6 +1,6 @@
 cabal-version:       2.4
 
-name:                trade-game-server
+name:                trade-game
 version:             0.1.0.0
 synopsis:            Server for a game with trading
 -- description:
@@ -13,12 +13,24 @@ maintainer:          thebenmachine+git@gmail.com
 -- category:
 -- extra-source-files:
 
+library
+  exposed-modules:
+    Protocol
+  ghc-options:         -Wall
+  build-depends:
+    aeson,
+    base,
+    lens
+  hs-source-dirs:      protocol
+  default-language:    Haskell2010
+
 executable trade-game-server
   main-is:             Main.hs
   other-modules:       Game Trade
   -- other-extensions:
   ghc-options:         -Wall
   build-depends:
+    trade-game,
     aeson,
     async,
     base,
@@ -30,5 +42,5 @@ executable trade-game-server
     wai-websockets,
     warp,
     websockets
-  -- hs-source-dirs:
+  hs-source-dirs:      server
   default-language:    Haskell2010
