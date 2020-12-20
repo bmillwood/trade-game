@@ -50,6 +50,7 @@ data Resource
   deriving (Generic, Show)
 
 instance Aeson.FromJSON Resource
+instance Aeson.ToJSON Resource
 
 data ByResource a =
   ByResource
@@ -78,6 +79,7 @@ data ResourceInfo a =
     , upgradeIn :: a
     } deriving (Generic, Show)
 
+instance (Aeson.FromJSON a) => Aeson.FromJSON (ResourceInfo a)
 instance (Aeson.ToJSON a) => Aeson.ToJSON (ResourceInfo a)
 
 data Choices =
@@ -87,6 +89,7 @@ data Choices =
     } deriving (Generic, Show)
 
 instance Aeson.FromJSON Choices
+instance Aeson.ToJSON Choices
 
 data PlayerInfo =
   PlayerInfo
@@ -96,6 +99,7 @@ data PlayerInfo =
     , trade :: ByDir (Maybe (Order Price Qty))
     } deriving (Generic, Show)
 
+instance Aeson.FromJSON PlayerInfo
 instance Aeson.ToJSON PlayerInfo
 
 data PlayerView =
@@ -104,6 +108,7 @@ data PlayerView =
     , others :: [PlayerInfo]
     } deriving (Generic, Show)
 
+instance Aeson.FromJSON PlayerView
 instance Aeson.ToJSON PlayerView
 
 data FromClient
@@ -112,10 +117,12 @@ data FromClient
   deriving (Generic, Show)
 
 instance Aeson.FromJSON FromClient
+instance Aeson.ToJSON FromClient
 
 data ToClient
   = UpdatePlayers PlayerView
   | PlayerReady { playerName :: String, isReady :: Bool }
   deriving (Generic, Show)
 
+instance Aeson.FromJSON ToClient
 instance Aeson.ToJSON ToClient

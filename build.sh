@@ -2,7 +2,7 @@
 set -ux
 
 function waitForSource() {
-  inotifywait --quiet -e modify -e delete protocol server
+  inotifywait --quiet -e modify -e delete bot protocol server
 }
 
 killGrandchild() {

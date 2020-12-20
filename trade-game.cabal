@@ -44,3 +44,20 @@ executable trade-game-server
     websockets
   hs-source-dirs:      server
   default-language:    Haskell2010
+
+executable trade-game-bot
+  main-is:             Main.hs
+  -- other-modules:
+  -- other-extensions:
+  ghc-options:         -Wall
+  build-depends:
+    trade-game,
+    aeson,
+    async,
+    base,
+    bytestring,
+    containers,
+    lens,
+    websockets
+  hs-source-dirs:      bot
+  default-language:    Haskell2010
