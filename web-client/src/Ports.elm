@@ -36,11 +36,18 @@ contentsWithTag tag contents =
     , ( "contents", contents )
     ]
 
-login : { username : String } -> Cmd msg
-login { username } =
+encodeClientKind : Model.ClientKind -> Json.Encode.Value
+encodeClientKind kind =
+  case kind of
+    Model.Player -> Json.Encode.string "Player"
+    Model.Spectator -> Json.Encode.string "Spectator"
+
+login : { username : String, kind : Model.ClientKind } -> Cmd msg
+login { username, kind } =
   Json.Encode.object
     [ ( "tag", Json.Encode.string "LoginRequest" )
     , ( "loginRequestName", Json.Encode.string username )
+    , ( "kind", encodeClientKind kind )
     ]
   |> send
 
@@ -183,7 +190,7 @@ players : Json.Decode.Decoder Model.Players
 players =
   Json.Decode.map2
     Model.Players
-    (Json.Decode.field "me" playerInfo)
+    (Json.Decode.field "me" (Json.Decode.nullable playerInfo))
     (Json.Decode.field "others" (Json.Decode.list playerInfo))
 
 serverMsg : Json.Decode.Decoder ServerMsg

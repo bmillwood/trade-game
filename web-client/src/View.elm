@@ -34,6 +34,17 @@ viewPreGame { loginState, loginForm } =
         ]
         []
 
+    spectateInput =
+      Html.input
+        [ Attributes.type_ "checkbox"
+        , Attributes.name "spectate"
+        , Attributes.checked (loginForm.kind == Model.Spectator)
+        , Events.onCheck (\checked ->
+            Msg.Update { loginForm | kind = if checked then Model.Spectator else Model.Player })
+        , Attributes.disabled (loginState == Model.Waiting)
+        ]
+        []
+
     submitButton =
       Html.input
         [ Attributes.type_ "submit"
@@ -46,26 +57,38 @@ viewPreGame { loginState, loginForm } =
     [ Events.onSubmit Msg.Submit ]
     [ Html.p [] [ Html.text "Server: ", endpointInput ]
     , Html.p [] [ Html.text "Username: ", usernameInput ]
+    , Html.p [] [ Html.text "Spectate: ", spectateInput ]
     , Html.p [] [ submitButton]
     ]
+
+viewControls : Model.Choices -> Model.PlayerInfo -> List (Html Msg.GameMsg)
+viewControls choices me =
+  [ View.ResourceTable.view choices me
+    |> Html.map Msg.MakeChoice
+  , Html.p
+      []
+      [ Html.button
+          [ Events.onClick (Msg.SetMeReady True)
+          , Attributes.disabled me.ready
+          ]
+          [ Html.text "Ready" ]
+      ]
+  ]
+
+viewPlayers : List Model.PlayerInfo -> List (Html Msg.GameMsg)
+viewPlayers players =
+  [ View.PlayerTable.view players
+    |> Html.map never
+  ]
 
 viewGame : Model.Game -> Html Msg.GameMsg
 viewGame { choices, players } =
   Html.div
     []
-    [ View.ResourceTable.view choices players.me
-      |> Html.map Msg.MakeChoice
-    , Html.p
-        []
-        [ Html.button
-            [ Events.onClick (Msg.SetMeReady True)
-            , Attributes.disabled players.me.ready
-            ]
-            [ Html.text "Ready" ]
-        ]
-    , View.PlayerTable.view (players.me :: players.others)
-      |> Html.map never
-    ]
+    (case players.me of
+      Nothing -> viewPlayers players.others
+      Just me ->
+        viewControls choices me ++ viewPlayers players.others)
 
 viewStyled : Model.Model -> Html Msg
 viewStyled { error, state } =

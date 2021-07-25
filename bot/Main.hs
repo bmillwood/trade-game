@@ -31,7 +31,7 @@ readFromServer conn = do
 clientApp :: WSC.ClientApp ()
 clientApp conn = do
   putStrLn "clientApp"
-  sendToServer conn LoginRequest{ loginRequestName = "minebot" }
+  sendToServer conn LoginRequest{ loginRequestName = "minebot", kind = Player }
   alwaysMine
   where
     alwaysMine = do
@@ -43,8 +43,9 @@ clientApp conn = do
       Just msg <- readFromServer conn
       case msg of
         PlayerReady{} -> waitForNextChoices
-        UpdatePlayers PlayerView{ me, others = _ } ->
+        UpdatePlayers GameView{ me, others = _ } ->
           case me of
-            PlayerInfo{ ready = True } -> waitForNextChoices
-            PlayerInfo{ ready = False } -> return ()
+            Just PlayerInfo{ ready = True } -> waitForNextChoices
+            Just PlayerInfo{ ready = False } -> return ()
+            Nothing -> waitForNextChoices
 

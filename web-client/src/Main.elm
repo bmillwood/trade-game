@@ -16,13 +16,13 @@ import View
 init : Json.Decode.Value -> (Model, Cmd Msg)
 init flags =
   let
-    { error, endpoint, username, autoLogin } = LocationParser.parseLocation flags
+    { error, endpoint, username, autoLogin, spectate } = LocationParser.parseLocation flags
   in
   ( { error = error
     , state =
         Model.PreGame
           { loginState = Model.NotSubmitted
-          , loginForm = { endpoint = endpoint, username = username }
+          , loginForm = { endpoint = endpoint, username = username, kind = if spectate then Model.Spectator else Model.Player }
           }
     }
   , if autoLogin
@@ -64,7 +64,10 @@ update msg model =
               )
             Msg.Connected ->
               ( model
-              , Ports.login { username = preGame.loginForm.username }
+              , Ports.login
+                  { username = preGame.loginForm.username
+                  , kind = preGame.loginForm.kind
+                  }
               )
             Msg.Accepted players ->
               ( { model | state = Model.InGame { choices = Model.newChoices, players = players } }
@@ -84,14 +87,16 @@ update msg model =
             Msg.MakeChoice choices ->
               ( updateGame { game | choices = choices }, Cmd.none )
             Msg.SetMeReady isReady ->
-              let
-                oldPlayers = game.players
-                oldMe = oldPlayers.me
-                newPlayers = { oldPlayers | me = { oldMe | ready = isReady } }
-              in
-              ( updateGame { game | players = newPlayers }
-              , Ports.sendChoices game.choices
-              )
+              case game.players.me of
+                Nothing -> ignore
+                Just oldMe ->
+                  let
+                    oldPlayers = game.players
+                    newPlayers = { oldPlayers | me = Just { oldMe | ready = isReady } }
+                  in
+                  ( updateGame { game | players = newPlayers }
+                  , Ports.sendChoices game.choices
+                  )
             Msg.SetOtherReady username isReady ->
               let
                 oldPlayers = game.players

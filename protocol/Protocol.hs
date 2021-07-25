@@ -102,17 +102,25 @@ data PlayerInfo =
 instance Aeson.FromJSON PlayerInfo
 instance Aeson.ToJSON PlayerInfo
 
-data PlayerView =
-  PlayerView
-    { me :: PlayerInfo
+data GameView =
+  GameView
+    { me :: Maybe PlayerInfo
     , others :: [PlayerInfo]
     } deriving (Generic, Show)
 
-instance Aeson.FromJSON PlayerView
-instance Aeson.ToJSON PlayerView
+instance Aeson.FromJSON GameView
+instance Aeson.ToJSON GameView
+
+data ClientKind
+  = Player
+  | Spectator
+  deriving (Generic, Show)
+
+instance Aeson.FromJSON ClientKind
+instance Aeson.ToJSON ClientKind
 
 data FromClient
-  = LoginRequest { loginRequestName :: String }
+  = LoginRequest { loginRequestName :: String, kind :: ClientKind }
   | MadeChoices Choices
   deriving (Generic, Show)
 
@@ -120,7 +128,7 @@ instance Aeson.FromJSON FromClient
 instance Aeson.ToJSON FromClient
 
 data ToClient
-  = UpdatePlayers PlayerView
+  = UpdatePlayers GameView
   | PlayerReady { playerName :: String, isReady :: Bool }
   deriving (Generic, Show)
 

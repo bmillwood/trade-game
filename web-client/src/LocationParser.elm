@@ -8,17 +8,28 @@ import Url
 import Url.Parser
 import Url.Parser.Query
 
-type alias QueryParams = { username : Maybe String, autoLogin : Maybe Bool }
+type alias QueryParams = { username : Maybe String, autoLogin : Maybe Bool, spectate : Maybe Bool }
 
 queryParser =
-  Url.Parser.Query.map2
+  let
+    bool name =
+      Url.Parser.Query.enum name (Dict.fromList [ ("true", True), ("false", False) ])
+  in
+  Url.Parser.Query.map3
     QueryParams
     (Url.Parser.Query.string "username")
-    (Url.Parser.Query.enum "autoLogin" (Dict.fromList [ ("true", True), ("false", False) ]))
+    (bool "autoLogin")
+    (bool "spectate")
 
-defaults = { error = Nothing, endpoint = "ws://localhost:45286", username = "", autoLogin = False }
+defaults =
+  { error = Nothing
+  , endpoint = "ws://localhost:45286"
+  , username = ""
+  , autoLogin = False
+  , spectate = False
+  }
 
-parseLocationProperly : Json.Decode.Value -> { error : Maybe String, endpoint : String, username : String, autoLogin : Bool }
+parseLocationProperly : Json.Decode.Value -> { error : Maybe String, endpoint : String, username : String, autoLogin : Bool, spectate : Bool }
 parseLocationProperly flags =
   let
     parsedUrl =
@@ -34,13 +45,14 @@ parseLocationProperly flags =
   case parsedUrl of
     Err msg ->
       { defaults | error = Just msg }
-    Ok { username, autoLogin } ->
+    Ok { username, autoLogin, spectate } ->
       { defaults
       | username = Maybe.withDefault defaults.username username
       , autoLogin = Maybe.withDefault defaults.autoLogin autoLogin
+      , spectate = Maybe.withDefault defaults.spectate spectate
       }
 
-parseLocationWorkaround : Json.Decode.Value -> { error : Maybe String, endpoint : String, username : String, autoLogin : Bool }
+parseLocationWorkaround : Json.Decode.Value -> { error : Maybe String, endpoint : String, username : String, autoLogin : Bool, spectate : Bool }
 parseLocationWorkaround flags =
   let
     ofParts host pathname search =
@@ -57,6 +69,7 @@ parseLocationWorkaround flags =
       { defaults
       | username = Maybe.withDefault defaults.username (lookup "username")
       , autoLogin = List.member "autoLogin=true" pieces
+      , spectate = List.member "spectate=true" pieces
       , endpoint = "ws://" ++ host ++ pathname
       }
     decoder =

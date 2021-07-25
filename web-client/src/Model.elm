@@ -28,7 +28,7 @@ newChoices =
   }
 
 type alias Players =
-  { me : PlayerInfo
+  { me : Maybe PlayerInfo
   , others : List PlayerInfo
   }
 
@@ -37,9 +37,14 @@ type alias Game =
   , players : Players
   }
 
+type ClientKind
+  = Player
+  | Spectator
+
 type alias LoginForm =
   { endpoint : String
   , username : String
+  , kind : ClientKind
   }
 
 type LoginState

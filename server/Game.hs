@@ -10,7 +10,7 @@ module Game
   , executeTurnIfReady
   , Choices(..)
   , setChoices
-  , PlayerView(..)
+  , GameView(..)
   , viewForPlayer
   ) where
 
@@ -126,8 +126,8 @@ setChoices usernameToSet choices (GameState players) =
   where
     updatePlayer (_, info) = (Just choices, info{ ready = True })
 
-viewForPlayer :: GameState -> String -> Maybe PlayerView
+viewForPlayer :: GameState -> String -> GameView
 viewForPlayer (GameState players) username =
-  case Map.updateLookupWithKey (\_ _ -> Nothing) username players of
-    (Nothing, _) -> Nothing
-    (Just (_, me), others) -> Just PlayerView{ me, others = map snd (Map.elems others) }
+    GameView{ me = fmap snd me, others = map snd (Map.elems others) }
+  where
+    (me, others) = Map.updateLookupWithKey (\_ _ -> Nothing) username players
