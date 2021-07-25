@@ -32,13 +32,13 @@ clientApp :: WSC.ClientApp ()
 clientApp conn = do
   putStrLn "clientApp"
   sendToServer conn LoginRequest{ loginRequestName = "minebot", kind = Player }
-  alwaysMine
+  alternate Mined Smelted
   where
-    alwaysMine = do
+    alternate thisTurn nextTurn = do
       sendToServer conn
-        (MadeChoices Choices{ takeAction = Just Mined, setTradeMined = pure (Order "" "") })
+        (MadeChoices Choices{ takeAction = Just thisTurn, setTradeMined = pure (Order "" "") })
       waitForNextChoices
-      alwaysMine
+      alternate nextTurn thisTurn
     waitForNextChoices = do
       Just msg <- readFromServer conn
       case msg of
