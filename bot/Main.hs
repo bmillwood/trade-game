@@ -4,16 +4,30 @@ module Main where
 import qualified Data.Aeson as Aeson
 import qualified Network.WebSockets as WS
 import qualified Network.WebSockets.Client as WSC
+import qualified System.Environment
 
 import Protocol
 
+data Config = Config{ botName :: String }
+
+getConfig :: IO Config
+getConfig = do
+  args <- System.Environment.getArgs
+  case args of
+    [] -> return Config{ botName = "lonelybot" }
+    [ botName ] -> return Config{ botName }
+    _ -> do
+      print ("too many", args)
+      return Config{ botName = "lonelybot" }
+
 main :: IO ()
-main =
+main = do
+  config <- getConfig
   WSC.runClient
     "127.0.0.1"
     45286
     ""
-    clientApp
+    (clientApp config)
 
 sendToServer :: WS.Connection -> FromClient -> IO ()
 sendToServer conn msg =
@@ -28,10 +42,10 @@ readFromServer conn = do
       return Nothing
     Just msg -> return (Just msg)
 
-clientApp :: WSC.ClientApp ()
-clientApp conn = do
+clientApp :: Config -> WSC.ClientApp ()
+clientApp Config{ botName } conn = do
   putStrLn "clientApp"
-  sendToServer conn LoginRequest{ loginRequestName = "minebot", kind = Player }
+  sendToServer conn LoginRequest{ loginRequestName = botName, kind = Player }
   alternate Mined Smelted
   where
     alternate thisTurn nextTurn = do
